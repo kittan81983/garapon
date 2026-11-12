@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>11/5オリパ</title>
+<meta name="apple-mobile-web-app-title" content="抽選">
+<link rel="apple-touch-icon" href="icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:0}*,*::before,*::after{box-sizing:border-box}</style>
+<meta name="theme-color" content="#ea506a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+/* Layout: one-screen phone app — pink header with pill buttons, white sheet with slot grid, three round buttons at the bottom */
+:root{
+  --pink:#ea506a; --pill:#983f51; --white:#ffffff; --cell:#f4f4f4; --hit:#fbecef;
+  --gray:#818183; --idx:#7c7c7e; --ink:#000000; --bulk:#f8d9df; --bulk-ink:#d94f6a; --reset-ink:#393c43;
+  --card:#fbecef;
+  --font:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box;background:linear-gradient(var(--pink) 0 50%,var(--white) 50% 100%) fixed}
+body{height:100%;margin:0}
+body{background:var(--white);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--pink)}
+.app{height:100%;display:flex;flex-direction:column;max-width:520px;margin:0 auto;background:var(--pink)}
+header{display:flex;align-items:center;justify-content:space-between;padding-block:8px 11px;padding-left:max(17px,env(safe-area-inset-left,0px));padding-right:max(17px,env(safe-area-inset-right,0px))}
+header h1{flex:1;text-align:center;font-size:17px;font-weight:700;margin:0;color:#fff;letter-spacing:.02em}
+.pill{display:flex;background:var(--pill);border-radius:21px;height:42px}
+.ib{width:50px;height:42px;border:0;background:transparent;color:#fff;display:grid;place-items:center;border-radius:21px;cursor:pointer;padding:0}
+.pill.r .ib{width:54px}
+.ib:focus-visible{outline:2px solid #fff;outline-offset:-3px}
+.ib svg{width:26px;height:26px}
+.sheet-w{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--white);border-radius:12px 12px 0 0}
+main{flex:1;overflow-y:auto;padding-block:16px;padding-left:max(17px,env(safe-area-inset-left,0px));padding-right:max(17px,env(safe-area-inset-right,0px))}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.cell{position:relative;aspect-ratio:183/175;max-width:100%;background:var(--cell);border-radius:7px;display:grid;place-items:center;font-weight:800;font-size:24px;color:var(--ink);font-variant-numeric:tabular-nums}
+.cell small{position:absolute;top:5px;left:4px;font-size:12px;font-weight:400;color:var(--idx)}
+.cell span{margin-top:6px}
+.cell .q{color:var(--gray);font-weight:800;font-size:24px}
+.cell.filled{background:var(--hit)}
+.cell.hit{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+.bar{display:flex;align-items:center;justify-content:space-between;padding-block:15px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
+.sub{width:97px;height:97px;border-radius:50%;border:0;font:700 15px var(--font);cursor:pointer;padding:0}
+.bulk{background:var(--bulk);color:var(--bulk-ink)}
+.reset{background:var(--cell);color:var(--reset-ink)}
+.draw{width:125px;height:125px;border-radius:50%;border:0;background:var(--pink);color:#fff;font:700 21px var(--font);cursor:pointer;padding:0;transition:transform .08s,filter .08s}
+.sub:active,.draw:active{transform:scale(.95);filter:brightness(.95)}
+.draw:disabled{opacity:.5}
+button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
+.adwrap{background:var(--white);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.ad{position:relative;height:50px;background:#16285a;color:#fff;display:flex;align-items:center;gap:10px;padding:0 10px 0 9px;overflow:hidden}
+.ad .copy{flex:1;min-width:0;font:400 12.5px/1.35 "Hiragino Mincho ProN","Yu Mincho",serif;letter-spacing:.02em}
+.ad .cta{flex:none;background:#fff;color:#16285a;font-size:8.5px;font-weight:700;border-radius:3px;padding:6px 10px;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.ad .logo{flex:none;border:1.5px solid #fff;padding:2px 6px 1px;text-align:center;font:600 13px/1 Georgia,serif;letter-spacing:.04em}
+.ad .logo small{display:block;font:700 5.5px/1.4 var(--font);letter-spacing:.12em;margin-top:2px}
+.ad .adi{position:absolute;top:1px;right:14px;width:11px;height:11px;border-radius:50%;background:#fff;color:#2a8fd6;font:700 8px/11px Georgia,serif;text-align:center}
+.ad .adm{position:absolute;top:1px;right:3px;color:#7fb6e6;font:700 10px/11px var(--font)}
+
+/* overlay */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:grid;place-items:center;z-index:20;padding:16px}
+.stage{position:relative;width:min(86vw,380px);aspect-ratio:1;max-width:100%;border-radius:10px;overflow:hidden;background:var(--pink);box-shadow:0 18px 40px rgba(0,0,0,.25);transition:background .25s}
+.stage.result{background:var(--card)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.num{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;color:var(--pink);font-size:clamp(64px,24vw,118px);letter-spacing:-.02em;font-variant-numeric:tabular-nums;pointer-events:none}
+.num.show{animation:zoom .55s cubic-bezier(.2,1.5,.4,1)}
+@keyframes zoom{0%{transform:scale(.2);opacity:0}100%{transform:scale(1);opacity:1}}
+.tap{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:11px;color:var(--reset-ink);opacity:.5}
+
+/* settings sheet */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;display:grid;align-items:end;justify-items:center}
+.panel{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+.panel h2{margin:0;font-size:16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+.row input{width:110px;font:700 16px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink);text-align:right}
+.ok{background:var(--pink);color:#fff;border:0;border-radius:10px;padding:12px;font:700 15px var(--font);cursor:pointer}
+@media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="pill">
+      <button class="ib" id="btnClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+      <button class="ib" id="btnShuffle" aria-label="並び替え"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="5" width="11" height="2.2" rx="1.1"/><rect x="2" y="10" width="11" height="2.2" rx="1.1"/><rect x="5" y="15" width="8" height="2.2" rx="1.1"/><path d="M16 3h2.2v13.5a3.5 3.5 0 1 1-2.2-3.25z"/><path d="M18.2 3c0 2 2.8 2.6 3.8 1.6v2.6c-1.2.6-2.6.4-3.8-.4z"/></svg></button>
+    </div>
+    <h1 id="title">11/5オリパ</h1>
+    <div class="pill r">
+      <button class="ib" id="btnSort" aria-label="順番"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 21V3M2.5 8l5-5 5 5M16.5 3v18M11.5 16l5 5 5-5"/></svg></button>
+      <button class="ib" id="btnSettings" aria-label="設定"><svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.3 1.5h3.4l.6 2.9c.7.3 1.4.7 2 1.2l2.8-1 1.7 3-2.2 2c.1.8.1 1.6 0 2.4l2.2 2-1.7 3-2.8-1c-.6.5-1.3.9-2 1.2l-.6 2.9h-3.4l-.6-2.9c-.7-.3-1.4-.7-2-1.2l-2.8 1-1.7-3 2.2-2a8 8 0 0 1 0-2.4l-2.2-2 1.7-3 2.8 1c.6-.5 1.3-.9 2-1.2zM12 15.6a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2z"/></svg></button>
+    </div>
+  </header>
+  <div class="sheet-w">
+    <main><div class="grid" id="grid"></div></main>
+    <div class="bar">
+      <button class="sub bulk" id="btnBulk">一括抽選</button>
+      <button class="draw" id="btnDraw">抽選</button>
+      <button class="sub reset" id="btnReset">リセット</button>
+    </div>
+    <div class="adwrap" aria-hidden="true">
+      <div class="ad">
+        <div class="copy">週末は、少し遠くへ。<br>海の見える部屋でゆっくりと</div>
+        <div class="cta">今すぐ予約</div>
+        <div class="logo">Seaview<small>HOTELS &amp; RESORTS</small></div>
+        <span class="adi">i</span><span class="adm">⋮</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="num" id="num" hidden></div>
+    <div class="tap" id="tap" hidden></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="panel">
+    <h2>設定</h2>
+    <div class="row"><label for="inTitle">タイトル</label><input id="inTitle" type="text" style="width:160px;text-align:left"></div>
+    <div class="row"><label for="inMin">最小の番号</label><input id="inMin" type="number" inputmode="numeric"></div>
+    <div class="row"><label for="inMax">最大の番号</label><input id="inMax" type="number" inputmode="numeric"></div>
+    <div class="row"><label for="inSlots">マスの数</label><input id="inSlots" type="number" inputmode="numeric"></div>
+    <div class="row"><label for="inRoom">連携コード</label><input id="inRoom" type="text" autocapitalize="characters" autocomplete="off" style="width:130px;text-align:left;text-transform:uppercase"></div>
+    <button class="ok" id="btnOk">保存してリセット</button>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const S = { title:"11/5オリパ", min:1, max:150, slots:28 };
+try { Object.assign(S, JSON.parse(localStorage.getItem("garapon-settings")||"{}")); } catch(e){}
+let drawn = [];
+let busy = false;
+let queue = [], banned = [];
+try{ const sv=JSON.parse(localStorage.getItem("garapon-secret")||"{}"); queue=sv.queue||[]; banned=sv.banned||[]; }catch(e){}
+function saveSecret(){ try{ localStorage.setItem("garapon-secret",JSON.stringify({queue,banned})); }catch(e){} }
+
+/* ---------- 操作側との連携（ntfy.sh 経由） ---------- */
+const me=Math.random().toString(36).slice(2,9);
+let room="", es=null;
+try{ room=(localStorage.getItem("garapon-room")||""); }catch(e){}
+const qp=new URLSearchParams(location.search).get("room"); if(qp) { room=qp.toUpperCase(); try{localStorage.setItem("garapon-room",room);}catch(e){} }
+function topic(){ return "garapon-v1-"+room.toLowerCase(); }
+function connect(){
+  if(es){ es.close(); es=null; } if(!room) return;
+  es=new EventSource("https://ntfy.sh/"+topic()+"/sse");
+  es.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(d.event && d.event!=="message") return; const m=JSON.parse(d.message); if(m.from===me) return; onRemote(m); }catch(_){} };
+  es.onopen=()=>sendState();
+}
+function send(m){ if(!room) return; m.from=me; m.at=Date.now(); fetch("https://ntfy.sh/"+topic(),{method:"POST",body:JSON.stringify(m)}).catch(()=>{}); }
+function sendState(){ saveSecret(); send({t:"state", drawn, queue, banned, min:S.min, max:S.max, slots:S.slots, busy, open:!document.getElementById("ov").hidden}); }
+function setRoom(r){ room=r; try{localStorage.setItem("garapon-room",room);}catch(e){} connect(); }
+function onRemote(m){
+  if(m.t==="hello"){ sendState(); }
+  else if(m.t==="queue"){ queue=(m.queue||[]).map(Number).filter(n=>isFinite(n)); render(); sendState(); }
+  else if(m.t==="ban"){ banned=(m.banned||[]).map(Number).filter(n=>isFinite(n)); render(); sendState(); }
+  else if(m.t==="draw"){ if(closeResolve && phase==="result"){ closeResolve(); } else if(!busy){ document.getElementById("btnDraw").click(); } }
+  else if(m.t==="close"){ closeResolve && closeResolve(); }
+  else if(m.t==="bulk"){ if(!busy) document.getElementById("btnBulk").click(); }
+  else if(m.t==="undo"){ if(!busy && drawn.length){ drawn.pop(); render(); sendState(); } }
+  else if(m.t==="reset"){ if(!busy){ drawn=[]; render(); sendState(); } }
+  else if(m.t==="set"){ if(!busy && Array.isArray(m.drawn)){ drawn=m.drawn.map(Number); render(); sendState(); } }
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) connect(); });
+
+
+function pool(){ const a=[]; for(let n=S.min;n<=S.max;n++) if(!drawn.includes(n) && !banned.includes(n)) a.push(n); return a; }
+function render(){
+  $("title").textContent = S.title;
+  const g=$("grid"); g.innerHTML="";
+  const count=Math.max(S.slots, drawn.length);
+  for(let i=0;i<count;i++){
+    const c=document.createElement("div"); c.className="cell";
+    c.innerHTML=`<small>${i+1}</small>`+(drawn[i]!=null?`<span>${drawn[i]}</span>`:`<span class="q">?</span>`);
+    if(drawn[i]!=null) c.classList.add("filled");
+    g.appendChild(c);
+  }
+  $("btnDraw").disabled = (pool().length===0 && !queue.length) || drawn.length>=S.slots;
+}
+function markHit(i){ const c=$("grid").children[i]; if(c){ c.classList.add("hit"); c.scrollIntoView({block:"nearest",behavior:"smooth"}); } }
+
+/* ---------- canvas wheel ---------- */
+const cv=$("cv"), ctx=cv.getContext("2d");
+let W=0, DPR=1;
+function fit(){ DPR=Math.min(3,window.devicePixelRatio||1); const r=cv.getBoundingClientRect(); W=r.width; cv.width=r.width*DPR; cv.height=r.height*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+const COLORS=["#f6a623","#3aa0e8","#7ed321","#ff6fa8","#9b59ff","#2ecfc0","#ffd93b","#ff7b3a","#4a6cf7","#e94b5f","#b4e04a","#5fd0ff"];
+let balls=[], angle=0, spin=0;
+
+function initBalls(){
+  balls=[]; for(let i=0;i<15;i++){ const a=Math.random()*Math.PI*2, d=Math.random()*.5;
+    balls.push({x:Math.cos(a)*d, y:.3+Math.sin(a)*d*.4, vx:0, vy:0, c:COLORS[i%COLORS.length]}); }
+}
+// physics in unit space: drum radius 1
+const BR=.17, G=2.6;
+function step(dt){
+  const inner=1-BR-.03;
+  for(const b of balls){ b.vy+=G*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; }
+  for(let k=0;k<3;k++){
+    for(let i=0;i<balls.length;i++)for(let j=i+1;j<balls.length;j++){
+      const a=balls[i], b=balls[j]; let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1e-4;
+      if(d<BR*2){ const o=(BR*2-d)/2; dx/=d; dy/=d; a.x-=dx*o; a.y-=dy*o; b.x+=dx*o; b.y+=dy*o;
+        const rv=(b.vx-a.vx)*dx+(b.vy-a.vy)*dy; if(rv<0){ const im=rv*.9; a.vx+=dx*im; a.vy+=dy*im; b.vx-=dx*im; b.vy-=dy*im; } }
+    }
+    for(const b of balls){ const d=Math.hypot(b.x,b.y);
+      if(d>inner){ const nx=b.x/d, ny=b.y/d; b.x=nx*inner; b.y=ny*inner;
+        const vn=b.vx*nx+b.vy*ny; if(vn>0){ b.vx-=vn*nx*1.5; b.vy-=vn*ny*1.5; }
+        // wall drags the ball along its rotation (tangent)
+        const tx=-ny, ty=nx, wallV=spin*inner, vt=b.vx*tx+b.vy*ty, f=(wallV-vt)*.35;
+        b.vx+=tx*f; b.vy+=ty*f; } }
+  }
+}
+function drawWheel(out){
+  const s=W, cx=s/2, cy=s*.44, R=s*.27, line="#fde6ea";
+  ctx.clearRect(0,0,s,s);
+  ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
+  // stand
+  ctx.lineWidth=s*.012;
+  ctx.beginPath(); ctx.moveTo(cx-R*.55,cy+R*.8); ctx.lineTo(cx-R*.72,cy+R*1.5); ctx.moveTo(cx+R*.55,cy+R*.8); ctx.lineTo(cx+R*.72,cy+R*1.5);
+  ctx.moveTo(cx-R*.95,cy+R*1.5); ctx.lineTo(cx+R*.95,cy+R*1.5); ctx.stroke();
+  // balls (clip inside drum)
+  ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+  for(const b of balls){ const x=cx+b.x*R, y=cy+b.y*R, r=BR*R;
+    ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(x-r*.35,y-r*.35,r*.32,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+  // spokes
+  ctx.lineWidth=s*.011;
+  for(let i=0;i<6;i++){ const a=angle+i*Math.PI/3; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*R*.09,cy+Math.sin(a)*R*.09); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke(); }
+  // ring
+  ctx.lineWidth=s*.016; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  ctx.lineWidth=s*.007; ctx.beginPath(); ctx.arc(cx,cy,R*1.06,0,Math.PI*2); ctx.stroke();
+  // hub
+  ctx.fillStyle="#ea506a"; ctx.lineWidth=s*.011; ctx.beginPath(); ctx.arc(cx,cy,R*.09,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // emerging ball with number
+  if(out){ const r=R*.34*out.k; ctx.fillStyle="#ffffff"; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="rgba(234,80,106,.25)"; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle="#ea506a"; ctx.font=`800 ${r*.72}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(out.n,cx,cy+r*.04); }
+}
+
+/* ---------- confetti ---------- */
+const CF=["#ff6fa8","#f6a623","#3aa0e8","#7ed321","#9b59ff","#ffd93b","#ff7b3a","#2ecfc0"];
+let bits=[];
+function initConfetti(){
+  bits=[]; for(let i=0;i<90;i++) bits.push({ x:Math.random(), y:Math.random()*1.1-.5, vy:.12+Math.random()*.18, rot:Math.random()*6, vr:(Math.random()-.5)*4,
+    sway:Math.random()*6, c:CF[i%CF.length], kind:Math.random()<.35?"curl":"chip", len:.04+Math.random()*.05 });
+}
+function drawConfetti(t){
+  const s=W; ctx.clearRect(0,0,s,s);
+  for(const b of bits){ const y=(b.y+b.vy*t), x=b.x+Math.sin(t*1.6+b.sway)*.03; if(y<-.1||y>1.1) continue;
+    ctx.save(); ctx.translate(x*s,y*s); ctx.rotate(b.rot+b.vr*t); ctx.strokeStyle=b.c; ctx.fillStyle=b.c;
+    if(b.kind==="chip"){ ctx.fillRect(-s*.006,-s*.012,s*.012,s*.024); }
+    else{ ctx.lineWidth=s*.008; ctx.lineCap="round"; ctx.beginPath(); const L=b.len*s;
+      for(let u=0;u<=1.001;u+=.1){ const px=(u-.5)*L, py=Math.sin(u*Math.PI*2.2)*L*.18; u===0?ctx.moveTo(px,py):ctx.lineTo(px,py);} ctx.stroke(); }
+    ctx.restore(); }
+}
+
+/* ---------- sequence ---------- */
+let raf=0, phase="", closeResolve=null;
+function runDraw(n, fast){
+  return new Promise(res=>{
+    const ov=$("ov"), st=$("stage"), num=$("num");
+    ov.hidden=false; st.classList.remove("result"); num.hidden=true; $("tap").hidden=true;
+    fit(); initBalls(); angle=0; spin=0;
+    const SPIN = fast? .9 : 2.6, EMERGE = fast? .35 : .7;
+    let t0=performance.now(), last=t0; phase="spin";
+    cancelAnimationFrame(raf);
+    const loop=now=>{
+      const dt=Math.min(.033,(now-last)/1000); last=now; const t=(now-t0)/1000;
+      if(phase==="spin"){
+        const target=7; spin = t<.4? target*(t/.4) : t>SPIN-.5? target*Math.max(0,(SPIN-t)/.5) : target;
+        angle+=spin*dt; step(dt); drawWheel(null);
+        if(t>=SPIN){ phase="emerge"; t0=now; }
+      } else if(phase==="emerge"){
+        step(dt); const k=Math.min(1,t/EMERGE); drawWheel({n, k:1-Math.pow(1-k,3)});
+        if(t>=EMERGE+ (fast?.15:.35)){ phase="result"; t0=now; st.classList.add("result"); num.textContent=n; num.hidden=false;
+          num.classList.remove("show"); void num.offsetWidth; num.classList.add("show"); initConfetti(); sendState();
+          setTimeout(()=>{ if(phase==="result") $("tap").hidden=false; }, 900); }
+      } else if(phase==="result"){
+        drawConfetti(t);
+        if(fast && t>.9){ finish(); return; }
+      }
+      raf=requestAnimationFrame(loop);
+    };
+    const finish=()=>{ cancelAnimationFrame(raf); phase=""; ov.hidden=true; closeResolve=null; res(); };
+    closeResolve=()=>{ if(phase==="result") finish(); };
+    raf=requestAnimationFrame(loop);
+  });
+}
+$("ov").addEventListener("click",()=>closeResolve&&closeResolve());
+
+async function drawOne(fast){
+  const p=pool(); if((!p.length && !queue.length)||drawn.length>=S.slots) return false;
+  const n = queue.length ? queue.shift() : p[Math.floor(Math.random()*p.length)];
+  await runDraw(n, fast);
+  drawn.push(n); render(); markHit(drawn.length-1); sendState(); return true;
+}
+$("btnDraw").onclick=async()=>{ if(busy) return; busy=true; await drawOne(false); busy=false; };
+$("btnBulk").onclick=async()=>{ if(busy) return; busy=true; while(await drawOne(true)){} busy=false; };
+
+/* reset with in-page confirm (tap twice) */
+let resetArm=0;
+$("btnReset").onclick=()=>{ if(busy) return; const b=$("btnReset");
+  if(Date.now()-resetArm<2500){ drawn=[]; render(); sendState(); b.textContent="リセット"; resetArm=0; }
+  else{ resetArm=Date.now(); b.textContent="もう一度"; setTimeout(()=>{ if(Date.now()-resetArm>=2400) b.textContent="リセット"; },2500); } };
+
+/* settings */
+$("btnSettings").onclick=()=>{ $("inTitle").value=S.title; $("inMin").value=S.min; $("inMax").value=S.max; $("inSlots").value=S.slots; $("inRoom").value=room; $("sheet").hidden=false; };
+$("sheet").addEventListener("click",e=>{ if(e.target.id==="sheet") $("sheet").hidden=true; });
+$("btnOk").onclick=()=>{
+  const mn=parseInt($("inMin").value,10), mx=parseInt($("inMax").value,10), sl=parseInt($("inSlots").value,10);
+  if(isFinite(mn)&&isFinite(mx)&&mx>mn){ S.min=mn; S.max=mx; }
+  if(isFinite(sl)&&sl>0&&sl<=400) S.slots=sl;
+  S.title=$("inTitle").value.trim()||S.title;
+  const rc=$("inRoom").value.trim().toUpperCase(); if(rc!==room){ setRoom(rc); }
+  try{ localStorage.setItem("garapon-settings",JSON.stringify(S)); }catch(e){}
+  drawn=[]; $("sheet").hidden=true; render(); sendState(); };
+$("btnSort").onclick=()=>{ drawn.sort((a,b)=>a-b); render(); sendState(); };
+$("btnShuffle").onclick=()=>{ for(let i=drawn.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [drawn[i],drawn[j]]=[drawn[j],drawn[i]]; } render(); sendState(); };
+$("btnClose").onclick=()=>{ $("sheet").hidden=true; };
+addEventListener("resize",()=>{ if(!$("ov").hidden) fit(); });
+
+render();
+connect();
+})();
+</script>
+</body>
+</html>
