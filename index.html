@@ -63,11 +63,9 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .2s}
 .ov.out{opacity:0}
 .stage{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 108px);transform:translateX(-50%);width:min(89vw,400px);aspect-ratio:1;max-width:100%;border-radius:9px;overflow:hidden;background:var(--panel)}
-.stage.result{background:var(--card)}
+.rv{position:absolute;inset:0;background:var(--card);clip-path:circle(0% at 50% 50%);-webkit-clip-path:circle(0% at 50% 50%)}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%}
 .num{position:absolute;left:0;right:0;top:52%;transform:translateY(-50%);text-align:center;font-family:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",var(--font);font-weight:800;color:var(--num);font-size:min(31vw,138px);line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;pointer-events:none}
-.num.show{animation:numin .28s ease-out}
-@keyframes numin{0%{transform:translateY(-50%) scale(.82);opacity:.2}100%{transform:translateY(-50%) scale(1);opacity:1}}
 #cf{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:21}
 .tap{display:none}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
@@ -108,7 +106,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 <div class="ov" id="ov" hidden>
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
-    <div class="num" id="num" hidden></div>
+    <div class="rv" id="rv"><div class="num" id="num"></div></div>
     <div class="tap" id="tap" hidden></div>
   </div>
   <canvas id="cf"></canvas>
@@ -248,17 +246,19 @@ function drawWheel(out){
 
 /* ---------- confetti (curly ribbons + specks, over the whole screen) ---------- */
 const CF=["#f37aa8","#f5c23e","#5cb0ea","#f59a42","#8fd14f","#e8384f","#7aa7f0"];
-let bits=[];
+let bits=[], revealE=0;
 function initConfetti(){
   bits=[]; const P=panelBox;
-  for(let i=0;i<70;i++){ const kind=i<16?"curl":(i<40?"streak":"speck");
+  for(let i=0;i<95;i++){ const kind=i<14?"curl":(i<45?"streak":"speck");
     bits.push({ kind, x:P.x+(Math.random()*1.02-.01)*P.w, y:P.y+(Math.random()*1.05-.18)*P.h,
       vy:8+Math.random()*22, rot:Math.random()*Math.PI*2, vr:(Math.random()-.5)*1.2, sway:Math.random()*6,
       c:CF[Math.floor(Math.random()*CF.length)], L:kind==="curl"?P.w*(.12+Math.random()*.1):(kind==="streak"?P.w*(.03+Math.random()*.04):P.w*.012),
       loops:2+Math.floor(Math.random()*2) }); }
 }
-function drawConfetti(t, alpha){
-  fx.clearRect(0,0,SW,SH); if(alpha<=0) return; fx.globalAlpha=alpha; fx.lineCap="round"; fx.lineJoin="round";
+function drawConfetti(t, alpha, revealing){
+  fx.clearRect(0,0,SW,SH); if(alpha<=0) return; fx.globalAlpha=alpha; fx.save();
+  if(revealing){ const P=panelBox, pr=revealE*.72*Math.hypot(P.w,P.h)/Math.SQRT2;
+    fx.beginPath(); fx.arc(P.x+P.w/2,P.y+P.h/2,pr,0,Math.PI*2); fx.clip(); } fx.lineCap="round"; fx.lineJoin="round";
   for(const b of bits){ const x=b.x+Math.sin(t*1.4+b.sway)*4, y=b.y+b.vy*t;
     fx.save(); fx.translate(x,y); fx.rotate(b.rot+b.vr*t); fx.strokeStyle=b.c; fx.fillStyle=b.c;
     if(b.kind==="curl"){ fx.lineWidth=2.2; fx.beginPath(); const L=b.L, a=L*.09, th=b.loops*Math.PI*2;
@@ -266,17 +266,18 @@ function drawConfetti(t, alpha){
     else if(b.kind==="streak"){ fx.lineWidth=2; fx.beginPath(); fx.moveTo(-b.L/2,0); fx.quadraticCurveTo(0,b.L*.35,b.L/2,0); fx.stroke(); }
     else { fx.fillRect(-b.L/2,-b.L,b.L,b.L*2); }
     fx.restore(); }
-  fx.globalAlpha=1;
+  fx.restore(); fx.globalAlpha=1;
 }
 
 /* ---------- sequence: spin → ball comes out → number + confetti → closes by itself ---------- */
 let raf=0, phase="", closeResolve=null;
-function runDraw(n, fast){
+function runDraw(n, fast, onReveal){
   return new Promise(res=>{
-    const ov=$("ov"), st=$("stage"), num=$("num");
-    ov.classList.remove("out"); ov.hidden=false; st.classList.remove("result"); num.hidden=true;
-    fit(); initBalls(); angle=0; spin=0; fx.clearRect(0,0,SW,SH);
-    const SPIN=fast?.8:2.4, EMERGE=fast?.18:.32, HOLD=fast?.5:1.3, FADE=fast?.15:.4, PLAIN=fast?.1:.45;
+    const ov=$("ov"), st=$("stage"), num=$("num"), rv=$("rv");
+    const clip=v=>{ rv.style.clipPath=v; rv.style.webkitClipPath=v; };
+    ov.classList.remove("out"); ov.hidden=false; clip("circle(0% at 50% 50%)"); num.textContent=n;
+    fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
+    const SPIN=fast?.8:2.5, EMERGE=fast?.12:.2, HOLD=fast?.5:1.3, FADE=fast?.15:.4, PLAIN=fast?.1:.45;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
@@ -286,9 +287,11 @@ function runDraw(n, fast){
         angle+=spin*dt; step(dt); drawWheel(null);
         if(t>=SPIN){ phase="emerge"; t0=now; }
       } else if(phase==="emerge"){
-        angle+=spin*dt; step(dt); const k=Math.min(1,t/EMERGE); drawWheel({n, k:1-Math.pow(1-k,2)});
-        if(t>=EMERGE){ phase="result"; t0=now; ctx.clearRect(0,0,W,W); st.classList.add("result"); num.textContent=n; num.hidden=false;
-          num.classList.remove("show"); void num.offsetWidth; num.classList.add("show"); initConfetti(); sendState(); }
+        angle+=spin*dt; step(dt); drawWheel(null);
+        if(!bits.length){ initConfetti(); onReveal&&onReveal(); }
+        const k=Math.min(1,t/EMERGE), e=1-Math.pow(1-k,2); revealE=e; clip(`circle(${(e*72).toFixed(2)}% at 50% 50%)`);
+        drawConfetti(0, 1, true);
+        if(t>=EMERGE){ phase="result"; t0=now; clip("none"); ctx.clearRect(0,0,W,W); sendState(); }
       } else if(phase==="result"){
         const a = t<HOLD?1:Math.max(0,1-(t-HOLD)/FADE);
         drawConfetti(t,a);
@@ -306,8 +309,8 @@ $("ov").addEventListener("click",()=>closeResolve&&closeResolve());
 async function drawOne(fast){
   const p=pool(); if((!p.length && !queue.length)||drawn.length>=S.slots) return false;
   const n = queue.length ? queue.shift() : p[Math.floor(Math.random()*p.length)];
-  await runDraw(n, fast);
-  drawn.push(n); render(); markHit(drawn.length-1); sendState(); return true;
+  await runDraw(n, fast, ()=>{ drawn.push(n); render(); markHit(drawn.length-1); });
+  sendState(); return true;
 }
 $("btnDraw").onclick=async()=>{ if(busy) return; busy=true; await drawOne(false); busy=false; };
 $("btnBulk").onclick=async()=>{ if(busy) return; busy=true; while(await drawOne(true)){} busy=false; };
