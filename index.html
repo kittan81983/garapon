@@ -154,13 +154,13 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .evl .card b{display:block;margin-top:6px;font:900 21px -apple-system,"Hiragino Sans",sans-serif;color:#000}
 .evl .fab{position:absolute;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 75px);width:44px;height:44px;border-radius:50%;background:var(--pink);border:4px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.12);display:grid;place-items:center;color:#fff}
 .evl .search{position:absolute;left:26px;right:26px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);height:44px;border-radius:22px;background:#fbfbfb;box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;padding:0 17px;color:#8e8e93;font:800 13px -apple-system,"Hiragino Sans",sans-serif}
-/* iOS ホーム画面アプリで画面の高さが短く報告される問題の対策: 実際の画面の高さ(--appH)で全体を描く */
-.app{bottom:auto!important;height:calc(var(--appH,100vh) - env(safe-area-inset-top,0px))!important}
-.ov,#cf,.cfm,.sheet,.smenu,.fsheet,.sdlg,.evl{bottom:auto!important;height:var(--appH,100%)!important}
+/* iOS 26 のホーム画面アプリでは画面下（ステータスバーと同じ高さ）が描けない不具合がある。
+   そのときは広告の下の余白をなくして、描ける範囲のいちばん下に広告を置く */
+.vpshort .adwrap{padding-bottom:0!important}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
-<script>(function(){function f(){var h=innerHeight;try{if((navigator.standalone||matchMedia("(display-mode: standalone)").matches)&&screen.height>h&&screen.width<screen.height===innerWidth<innerHeight)h=screen.height;}catch(e){}document.documentElement.style.setProperty("--appH",h+"px");}f();addEventListener("resize",f);addEventListener("orientationchange",function(){setTimeout(f,300)});})();</script>
+<script>(function(){function f(){var r=document.documentElement,sh=false;try{var st=navigator.standalone||matchMedia("(display-mode: standalone)").matches,por=innerHeight>innerWidth;sh=st&&por&&(screen.height-innerHeight)>20;}catch(e){}r.classList.toggle("vpshort",sh);}f();addEventListener("resize",f);addEventListener("orientationchange",function(){setTimeout(f,300)});})();</script>
 </head>
 <body>
 <div class="app">
@@ -514,7 +514,7 @@ applyAd();
 render();
 connect();
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261114-0225";
+const APP_VER="20261114-0230";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
