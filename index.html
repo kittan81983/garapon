@@ -484,6 +484,17 @@ $("inAd").addEventListener("change",()=>{ S.ad=$("inAd").value; try{ localStorag
 applyAd();
 render();
 connect();
+/* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
+const APP_VER="20261114-0040";
+function checkUpdate(){
+  if(!/github\.io$/.test(location.hostname)) return;
+  fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
+    const m=t.match(/APP_VER="([^"]+)"/); if(m && m[1]!==APP_VER && !busy){ location.replace(location.pathname+"?v="+m[1]); }
+  }).catch(()=>{});
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); });
+setTimeout(checkUpdate,1500);
+
 })();
 </script>
 </body>
