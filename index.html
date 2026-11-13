@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>11/5オリパ</title>
 <meta name="apple-mobile-web-app-title" content="抽選">
@@ -15,7 +16,7 @@
 :root{
   --pink:#ea506a; --pill:#983f51; --white:#ffffff; --cell:#f4f4f4; --hit:#fbecef;
   --gray:#818183; --idx:#7c7c7e; --ink:#000000; --bulk:#f8d9df; --bulk-ink:#d94f6a; --reset-ink:#393c43;
-  --card:#ffffff; --panel:#fb1e56; --num:#ec1d55; --rim:#ffffff;
+  --card:#fff3f8; --panel:#fb1e56; --num:#f2325f; --rim:#ffffff;
   --font:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
   color-scheme:light;
 }
@@ -60,13 +61,13 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .ad .adm{position:absolute;top:1px;right:3px;color:#7fb6e6;font:700 10px/11px var(--font)}
 
 /* overlay */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .3s}
-.ov.pre{opacity:0}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .15s}
 
+.ov.pre{opacity:0}
 .stage{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 200px);transform:translateX(-50%);width:min(88vw,400px);aspect-ratio:1;max-width:100%;border-radius:9px;overflow:hidden;background:var(--panel)}
 .rv{position:absolute;inset:0;background:var(--card);clip-path:circle(0% at 50% 50%);-webkit-clip-path:circle(0% at 50% 50%)}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%}
-.num{position:absolute;left:0;right:0;top:52%;transform:translateY(-50%);text-align:center;font-family:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",var(--font);font-weight:800;color:var(--num);font-size:min(31vw,138px);line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;pointer-events:none}
+.num{position:absolute;left:0;right:0;top:52%;transform:translateY(-50%);transform-origin:50% 50%;text-align:center;font-family:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",var(--font);font-weight:800;color:var(--num);font-size:min(31vw,138px);line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;pointer-events:none}
 #cf{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:21}
 .tap{display:none}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
@@ -215,7 +216,7 @@ function step(dt){
   }
 }
 function drawWheel(out){
-  const s=W, cx=s/2, cy=s*.46, R=s*.33, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
+  const s=W, cx=s/2, cy=s*.465, R=s*.32, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
   ctx.clearRect(0,0,s,s);
   ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
   // stand
@@ -241,29 +242,41 @@ function drawWheel(out){
     ctx.font=`800 ${r*.5}px "Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(out.n,cx,cy+r*.04); }
 }
 
-/* ---------- confetti (curly ribbons + specks, over the whole screen) ---------- */
-const CF=["#f5c518","#7ad13b","#4a8fe8","#f07ab8","#9b6be0","#f39a2b","#e8285a","#5fc8e8"];
+/* ---------- confetti (wide twisted ribbons around the card edges + pale diamonds, almost still) ---------- */
+const CF=["#f6d43c","#8ccdf3","#f2a3c6","#b5df76","#c6a3ee","#f6b26a","#ef7f9b","#9fe3d6"];
 let bits=[], revealE=0;
+function edgePoint(P,avoid){ for(let k=0;k<20;k++){ const u=Math.random()*1.16-.08, v=Math.random()*1.2-.14;
+    if(!avoid || Math.abs(u-.5)>.3 || Math.abs(v-.52)>.2) return {x:P.x+u*P.w,y:P.y+v*P.h}; }
+  return {x:P.x+Math.random()*P.w,y:P.y+Math.random()*.15*P.h}; }
 function initConfetti(){
   bits=[]; const P=panelBox;
-  for(let i=0;i<110;i++){ const kind=i<8?"curl":(i<22?"ribbon":"flake");
-    bits.push({ kind, x:P.x+(Math.random()*1.16-.08)*P.w, y:P.y+(Math.random()*1.12-.2)*P.h,
-      vy:10+Math.random()*25, rot:Math.random()*Math.PI*2, vr:(Math.random()-.5)*2.5, sway:Math.random()*6,
+  for(let i=0;i<96;i++){ const kind=i<4?"curl":(i<30?"ribbon":"flake"); const pt=edgePoint(P, kind!=="flake" || Math.random()<.6);
+    bits.push({ kind, x:pt.x, y:pt.y, vy:2+Math.random()*5, rot:Math.random()*Math.PI*2, vr:(Math.random()-.5)*.5, sway:Math.random()*6,
       c:CF[Math.floor(Math.random()*CF.length)],
-      L:kind==="curl"?P.w*(.14+Math.random()*.08):(kind==="ribbon"?P.w*(.12+Math.random()*.12):P.w*(.018+Math.random()*.014)),
-      loops:2+Math.floor(Math.random()*2), wav:1+Math.random()*1.5 }); }
+      L:kind==="curl"?P.w*(.13+Math.random()*.06):(kind==="ribbon"?P.w*(.12+Math.random()*.12):P.w*(.011+Math.random()*.01)),
+      W:kind==="ribbon"?P.w*(.017+Math.random()*.008):P.w*.012,
+      tw:1.2+Math.random()*1.6, bend:(Math.random()-.5)*.5, loops:1+Math.floor(Math.random()*2) }); }
+}
+function ribbon(L,W,tw,bend,ph){ // flat paper strip that twists along its length
+  const N=22, top=[], bot=[];
+  for(let i=0;i<=N;i++){ const u=i/N, x=(u-.5)*L, y=Math.sin(u*Math.PI)*bend*L, w=W*(.18+.82*Math.abs(Math.cos(u*Math.PI*tw+ph)));
+    const dx=L/N, dy=Math.cos(u*Math.PI)*Math.PI*bend*L/N, n=Math.hypot(dx,dy)||1;
+    top.push([x-dy/n*w/2,y+dx/n*w/2]); bot.push([x+dy/n*w/2,y-dx/n*w/2]); }
+  fx.beginPath(); fx.moveTo(top[0][0],top[0][1]); for(const q of top) fx.lineTo(q[0],q[1]); for(let i=bot.length-1;i>=0;i--) fx.lineTo(bot[i][0],bot[i][1]); fx.closePath(); fx.fill();
 }
 function drawConfetti(t, alpha, revealing){
   fx.clearRect(0,0,SW,SH); if(alpha<=0) return; fx.globalAlpha=alpha; fx.save();
-  if(revealing){ const P=panelBox, pr=revealE*.78*Math.hypot(P.w,P.h)/Math.SQRT2;
-    fx.beginPath(); fx.arc(P.x+P.w/2,P.y+P.h*.465,pr,0,Math.PI*2); fx.clip(); } fx.lineCap="round"; fx.lineJoin="round";
-  for(const b of bits){ const x=b.x+Math.sin(t*1.4+b.sway)*4, y=b.y+b.vy*t;
+  const P=panelBox, cx=P.x+P.w/2, cy=P.y+P.h*.465;
+  if(revealing){ const pr=Math.max(.001,revealE)*Math.hypot(P.w,P.h)/2;
+    fx.beginPath(); fx.arc(cx,cy,pr,0,Math.PI*2); fx.clip();
+    const sc=.35+.65*revealE; fx.translate(cx,cy); fx.scale(sc,sc); fx.translate(-cx,-cy); }
+  fx.lineCap="round"; fx.lineJoin="round";
+  for(const b of bits){ const x=b.x+Math.sin(t*1.1+b.sway)*2, y=b.y+b.vy*t;
     fx.save(); fx.translate(x,y); fx.rotate(b.rot+b.vr*t); fx.strokeStyle=b.c; fx.fillStyle=b.c;
-    if(b.kind==="flake"){ const w=b.L, sk=Math.cos(t*4+b.sway); fx.beginPath(); fx.moveTo(0,-w); fx.lineTo(w*.55*sk,0); fx.lineTo(0,w); fx.lineTo(-w*.55*sk,0); fx.closePath(); fx.fill(); }
-    else if(b.kind==="ribbon"){ fx.lineWidth=2.6; fx.beginPath(); const L=b.L; for(let u=0;u<=1.0001;u+=.04){ const px=(u-.5)*L, py=Math.sin(u*Math.PI*2*b.wav+t*3)*L*.08; u===0?fx.moveTo(px,py):fx.lineTo(px,py);} fx.stroke(); }
-    else if(b.kind==="curl"){ fx.lineWidth=2.4; fx.beginPath(); const L=b.L, a=L*.09, th=b.loops*Math.PI*2;
-      for(let u=0;u<=1.0001;u+=.02){ const q=u*th, px=(u-.5)*L - a*1.6*Math.sin(q), py=a*Math.cos(q)*1.6; u===0?fx.moveTo(px,py):fx.lineTo(px,py); } fx.stroke(); }
-
+    if(b.kind==="flake"){ const w=b.L, sk=.55*Math.cos(t*2+b.sway); fx.globalAlpha=alpha*.75; fx.beginPath(); fx.moveTo(0,-w); fx.lineTo(w*sk,0); fx.lineTo(0,w); fx.lineTo(-w*sk,0); fx.closePath(); fx.fill(); fx.globalAlpha=alpha; }
+    else if(b.kind==="ribbon"){ fx.globalAlpha=alpha*.92; ribbon(b.L,b.W,b.tw,b.bend,b.sway+t*1.2); fx.globalAlpha=alpha; }
+    else { fx.lineWidth=b.W; fx.beginPath(); const L=b.L, a=L*.13, th=b.loops*Math.PI*2;
+      for(let u=0;u<=1.0001;u+=.02){ const q=u*th, px=(u-.5)*L*.5 - a*Math.sin(q), py=-a*Math.cos(q)+u*L*.35; u===0?fx.moveTo(px,py):fx.lineTo(px,py); } fx.stroke(); }
     fx.restore(); }
   fx.restore(); fx.globalAlpha=1;
 }
@@ -276,9 +289,9 @@ function runDraw(n, fast, onReveal){
     const clip=v=>{ rv.style.clipPath=v; rv.style.webkitClipPath=v; };
     ov.classList.remove("out"); ov.classList.add("pre"); ov.hidden=false;
     { const mb=document.querySelector("main").getBoundingClientRect(), c0=$("grid").children[0]; const ch=c0?c0.getBoundingClientRect().height:78; st.style.top=Math.round(mb.top+16+ch+9+37)+"px"; }
-    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 50% 46.5%)"); num.textContent=n;
+    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 50% 46.5%)"); num.textContent=n; num.style.transform="translateY(-50%) scale(.35)"; rv.style.opacity=".85";
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
-    const SPIN=fast?.8:2.5, EMERGE=fast?.12:.2, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
+    const SPIN=fast?.8:2.5, EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
@@ -290,9 +303,10 @@ function runDraw(n, fast, onReveal){
       } else if(phase==="emerge"){
         angle+=spin*dt; step(dt); drawWheel(null);
         if(!bits.length){ initConfetti(); onReveal&&onReveal(); }
-        const k=Math.min(1,t/EMERGE), e=1-Math.pow(1-k,2); revealE=e; clip(`circle(${(e*78).toFixed(2)}% at 50% 46.5%)`);
+        const k=Math.min(1,t/EMERGE), e=1-Math.pow(1-k,2); revealE=.1+.9*e; clip(`circle(${(9+e*71).toFixed(2)}% at 50% 46.5%)`);
+        num.style.transform=`translateY(-50%) scale(${(.35+.65*e).toFixed(3)})`; rv.style.opacity=(.85+.15*e).toFixed(3);
         drawConfetti(0, 1, true);
-        if(t>=EMERGE){ phase="result"; t0=now; clip("none"); ctx.clearRect(0,0,W,W); sendState(); }
+        if(t>=EMERGE){ phase="result"; t0=now; clip("none"); num.style.transform=""; rv.style.opacity=""; ctx.clearRect(0,0,W,W); sendState(); }
       } else if(phase==="result"){
         const a = t<HOLD?1:Math.max(0,1-(t-HOLD)/FADE);
         drawConfetti(t,a);
