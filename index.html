@@ -315,7 +315,7 @@ function runDraw(n, fast, onReveal){
     ov.classList.remove("out"); ov.classList.add("pre"); ov.hidden=false;
     requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45%)"); num.textContent=n; num.style.transform="translateY(-50%) scale(.35)"; rv.style.opacity=".85";
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
-    const SPIN=fast?.8:2.5, EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
+    const SPIN=fast?.8:2.3, EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
