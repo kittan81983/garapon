@@ -43,7 +43,7 @@ main{flex:1;overflow-y:auto;padding-block:16px;padding-left:max(17px,env(safe-ar
 .cell.filled{background:var(--hit)}
 .cell.hit{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
-.bar{display:flex;align-items:center;justify-content:space-between;padding-block:15px calc(15px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
+.bar{display:flex;align-items:center;justify-content:space-between;padding-block:15px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
 .sub{width:97px;height:97px;border-radius:50%;border:0;font:700 15px var(--font);cursor:pointer;padding:0}
 .bulk{background:var(--bulk);color:var(--bulk-ink)}
 .reset{background:var(--cell);color:var(--reset-ink)}
@@ -69,6 +69,21 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
 .row input{width:110px;font:700 16px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink);text-align:right}
 .ok{background:var(--pink);color:#fff;border:0;border-radius:10px;padding:12px;font:700 15px var(--font);cursor:pointer}
+/* bottom ad banner (fictional ads / offline notice) */
+.adwrap{background:var(--white);padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.adwrap.none{padding-bottom:env(safe-area-inset-bottom,0px)}
+.adwrap.none .ad{display:none}
+.ad{position:relative;height:50px;display:flex;align-items:center;gap:9px;padding:0 30px 0 8px;background:#fff;border-top:1px solid #ececec;border-bottom:1px solid #ececec;overflow:hidden;font-family:-apple-system,"Hiragino Sans",sans-serif}
+.ad .ai{flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font:800 17px/1 -apple-system,sans-serif;box-shadow:0 0 0 .5px rgba(0,0,0,.12)}
+.ad .ai svg{width:20px;height:20px}
+.ad .at{flex:1;min-width:0;line-height:1.25}
+.ad .at b{display:block;font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad .at span{display:block;font-size:11px;color:#6b6b70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad .ab{flex:none;background:#0a64d8;color:#fff;font:600 13px -apple-system,sans-serif;border-radius:999px;padding:7px 18px}
+.ad .ainfo{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:15px;height:15px;border-radius:50%;border:1.3px solid #2a86e0;color:#2a86e0;font:700 10px/12px Georgia,serif;text-align:center}
+.ad .adots{position:absolute;right:9px;top:3px;color:#2a86e0;font:700 9px/1 sans-serif;letter-spacing:-1px}
+.ad.off .ai{background:#c7c7cc}
+.ad.off .at b{color:#3a3a3c}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
@@ -93,6 +108,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
       <button class="draw" id="btnDraw">抽選</button>
       <button class="sub reset" id="btnReset">リセット</button>
     </div>
+    <div class="adwrap" id="adwrap" aria-hidden="true"><div class="ad" id="ad"></div></div>
   </div>
 </div>
 
@@ -113,6 +129,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
     <div class="row"><label for="inMax">最大の番号</label><input id="inMax" type="number" inputmode="numeric"></div>
     <div class="row"><label for="inSlots">マスの数</label><input id="inSlots" type="number" inputmode="numeric"></div>
     <div class="row"><label for="inRoom">連携コード</label><input id="inRoom" type="text" autocapitalize="characters" autocomplete="off" style="width:130px;text-align:left;text-transform:uppercase"></div>
+    <div class="row"><label for="inAd">広告</label><select id="inAd" style="font:700 15px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink)"><option value="ads">普通の広告</option><option value="offline">機内モード表示</option><option value="none">なし</option></select></div>
     <button class="ok" id="btnOk">保存してリセット</button>
   </div>
 </div>
@@ -120,7 +137,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 <script>
 (() => {
 const $ = id => document.getElementById(id);
-const S = { title:"11/5オリパ", min:1, max:150, slots:28 };
+const S = { title:"11/5オリパ", min:1, max:150, slots:28, ad:"ads" };
 try { Object.assign(S, JSON.parse(localStorage.getItem("garapon-settings")||"{}")); } catch(e){}
 let drawn = [];
 try{ const dv=JSON.parse(localStorage.getItem("garapon-drawn")||"[]"); if(Array.isArray(dv)) drawn=dv.map(Number).filter(n=>isFinite(n)); }catch(e){}
@@ -328,7 +345,7 @@ $("btnReset").onclick=()=>{ if(busy) return; const b=$("btnReset");
   else{ resetArm=Date.now(); b.textContent="もう一度"; setTimeout(()=>{ if(Date.now()-resetArm>=2400) b.textContent="リセット"; },2500); } };
 
 /* settings */
-$("btnSettings").onclick=()=>{ $("inTitle").value=S.title; $("inMin").value=S.min; $("inMax").value=S.max; $("inSlots").value=S.slots; $("inRoom").value=room; $("sheet").hidden=false; };
+$("btnSettings").onclick=()=>{ $("inTitle").value=S.title; $("inMin").value=S.min; $("inMax").value=S.max; $("inSlots").value=S.slots; $("inRoom").value=room; $("inAd").value=S.ad||"ads"; $("sheet").hidden=false; };
 $("sheet").addEventListener("click",e=>{ if(e.target.id==="sheet") $("sheet").hidden=true; });
 $("btnOk").onclick=()=>{
   const mn=parseInt($("inMin").value,10), mx=parseInt($("inMax").value,10), sl=parseInt($("inSlots").value,10);
@@ -343,6 +360,21 @@ $("btnShuffle").onclick=()=>{ for(let i=drawn.length-1;i>0;i--){ const j=Math.fl
 $("btnClose").onclick=()=>{ $("sheet").hidden=true; };
 addEventListener("resize",()=>{ if(!$("ov").hidden) fit(); });
 
+/* ---------- 下の広告（架空の広告2本を交互に / 機内モード表示） ---------- */
+const PLANE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z"/></svg>';
+const ADS=[
+  {ic:'<span style="background:#27b36a;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">¥</span>',t:"ポケット家計簿",s:"レシートを撮るだけで、家計簿が自動で完成",b:"入手"},
+  {ic:'<span style="background:#ff8a00;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">英</span>',t:"ハナマル英会話 オンライン",s:"1回25分・初回の無料体験レッスン受付中",b:"開く"}
+];
+let adIdx=0, adTimer=0;
+function showAd(){
+  const w=$("adwrap"), el=$("ad"); w.classList.toggle("none",S.ad==="none"); el.classList.toggle("off",S.ad==="offline");
+  if(S.ad==="offline"){ el.innerHTML='<div class="ai">'+PLANE+'</div><div class="at"><b>機内モードがオンです</b><span>インターネットに接続されていないため、広告を表示できません</span></div><span class="ainfo">i</span>'; return; }
+  const a=ADS[adIdx%ADS.length]; el.innerHTML='<div class="ai">'+a.ic+'</div><div class="at"><b>'+a.t+'</b><span>'+a.s+'</span></div><div class="ab">'+a.b+'</div><span class="adots">⋮</span>';
+}
+function applyAd(){ clearInterval(adTimer); showAd(); if(S.ad==="ads") adTimer=setInterval(()=>{ adIdx++; showAd(); },15000); }
+$("inAd").addEventListener("change",()=>{ S.ad=$("inAd").value; try{ localStorage.setItem("garapon-settings",JSON.stringify(S)); }catch(e){} applyAd(); });
+applyAd();
 render();
 connect();
 })();
