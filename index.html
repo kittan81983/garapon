@@ -73,7 +73,8 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .adwrap{background:var(--white);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 20px))}
 .adwrap.none{padding-bottom:env(safe-area-inset-bottom,0px)}
 .adwrap.none .ad{display:none}
-.ad{position:relative;height:49px;display:flex;align-items:center;gap:9px;padding:0 30px 0 8px;background:#fff;border-top:1px solid #ececec;border-bottom:1px solid #ececec;overflow:hidden;font-family:-apple-system,"Hiragino Sans",sans-serif}
+.ad{position:relative;height:49px;background:#fff;border-top:1px solid #ececec;border-bottom:1px solid #ececec;overflow:hidden;font-family:-apple-system,"Hiragino Sans",sans-serif}
+.ad .slide{position:absolute;inset:0;display:flex;align-items:center;gap:9px;padding:0 30px 0 8px;background:#fff}
 .ad .ai{flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font:800 17px/1 -apple-system,sans-serif;box-shadow:0 0 0 .5px rgba(0,0,0,.12)}
 .ad .ai svg{width:20px;height:20px}
 .ad .at{flex:1;min-width:0;line-height:1.25}
@@ -471,21 +472,33 @@ addEventListener("resize",()=>{ if(!$("ov").hidden) fit(); });
 const PLANE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z"/></svg>';
 const ADS=[
   {ic:'<span style="background:#27b36a;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">¥</span>',t:"ポケット家計簿",s:"レシートを撮るだけで、家計簿が自動で完成",b:"入手"},
-  {ic:'<span style="background:#ff8a00;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">英</span>',t:"ハナマル英会話 オンライン",s:"1回25分・初回の無料体験レッスン受付中",b:"開く"}
+  {ic:'<span style="background:#ff8a00;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">英</span>',t:"ハナマル英会話 オンライン",s:"1回25分・初回の無料体験レッスン受付中",b:"開く"},
+  {ic:'<span style="background:#6a5cff;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">★</span>',t:"ほしぞらパズル",s:"1日5分の脳トレ。かんたん操作で毎日ログボ",b:"入手"},
+  {ic:'<span style="background:#e9445a;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">宿</span>',t:"たびまくら｜ホテル予約",s:"週末の温泉宿が最大30%OFF、今だけクーポン配布中",b:"開く"},
+  {ic:'<span style="background:#1e9be8;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">歩</span>',t:"てくてく万歩計",s:"歩くだけでポイントが貯まる、毎日の健康習慣",b:"入手"}
 ];
 let adIdx=0, adTimer=0;
-function showAd(){
-  const w=$("adwrap"), el=$("ad"); w.classList.toggle("none",S.ad==="none"); el.classList.toggle("off",S.ad==="offline");
-  if(S.ad==="offline"){ el.innerHTML='<div class="ai">'+PLANE+'</div><div class="at"><b>機内モードがオンです</b><span>インターネットに接続されていないため、広告を表示できません</span></div><span class="ainfo">i</span>'; return; }
-  const a=ADS[adIdx%ADS.length]; el.innerHTML='<div class="ai">'+a.ic+'</div><div class="at"><b>'+a.t+'</b><span>'+a.s+'</span></div><div class="ab">'+a.b+'</div><span class="adots">⋮</span>';
+function adHTML(){
+  if(S.ad==="offline") return '<div class="ai">'+PLANE+'</div><div class="at"><b>機内モードがオンです</b><span>インターネットに接続されていないため、広告を表示できません</span></div><span class="ainfo">i</span>';
+  const a=ADS[adIdx%ADS.length]; return '<div class="ai">'+a.ic+'</div><div class="at"><b>'+a.t+'</b><span>'+a.s+'</span></div><div class="ab">'+a.b+'</div><span class="adots">⋮</span>';
 }
-function applyAd(){ clearInterval(adTimer); showAd(); if(S.ad==="ads") adTimer=setInterval(()=>{ adIdx++; showAd(); },15000); }
+function showAd(slide){
+  const w=$("adwrap"), el=$("ad"); w.classList.toggle("none",S.ad==="none"); el.classList.toggle("off",S.ad==="offline");
+  const old=el.querySelector(".slide"), nw=document.createElement("div"); nw.className="slide"; nw.innerHTML=adHTML();
+  if(slide && old && !matchMedia("(prefers-reduced-motion:reduce)").matches){
+    nw.style.transform="translateX(100%)"; el.appendChild(nw); void nw.offsetWidth;
+    old.style.transition=nw.style.transition="transform .45s cubic-bezier(.4,0,.2,1)";
+    old.style.transform="translateX(-100%)"; nw.style.transform="translateX(0)";
+    setTimeout(()=>old.remove(),500);
+  } else { el.innerHTML=""; el.appendChild(nw); }
+}
+function applyAd(){ clearInterval(adTimer); showAd(false); if(S.ad==="ads") adTimer=setInterval(()=>{ adIdx++; showAd(true); },6000); }
 $("inAd").addEventListener("change",()=>{ S.ad=$("inAd").value; try{ localStorage.setItem("garapon-settings",JSON.stringify(S)); }catch(e){} applyAd(); });
 applyAd();
 render();
 connect();
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261114-0200";
+const APP_VER="20261114-0210";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
