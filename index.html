@@ -135,7 +135,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 <div class="cfm" id="cfm" hidden>
   <div class="box" role="dialog" aria-labelledby="cfmT">
     <h3 id="cfmT">注意</h3>
-    <p>抽選結果をリセットしますか？<br>この操作は取り消すことができません</p>
+    <p id="cfmM">抽選結果をリセットしますか？<br>この操作は取り消すことができません</p>
     <div class="bt"><button class="cn" id="cfmNo">キャンセル</button><button class="ok2" id="cfmYes">リセット</button></div>
   </div>
 </div>
@@ -186,7 +186,7 @@ function onRemote(m){
   else if(m.t==="ban"){ banned=(m.banned||[]).map(Number).filter(n=>isFinite(n)); render(); sendState(); }
   else if(m.t==="draw"){ if(closeResolve && phase==="result"){ closeResolve(); } else if(!busy){ document.getElementById("btnDraw").click(); } }
   else if(m.t==="close"){ closeResolve && closeResolve(); }
-  else if(m.t==="bulk"){ if(!busy) document.getElementById("btnBulk").click(); }
+  else if(m.t==="bulk"){ if(!busy) doBulk(); }
   else if(m.t==="undo"){ if(!busy && drawn.length){ drawn.pop(); render(); sendState(); } }
   else if(m.t==="reset"){ if(!busy){ drawn=[]; render(); sendState(); } }
   else if(m.t==="set"){ if(!busy && Array.isArray(m.drawn)){ drawn=m.drawn.map(Number); render(); sendState(); } }
@@ -313,9 +313,9 @@ function runDraw(n, fast, onReveal){
     const ov=$("ov"), st=$("stage"), num=$("num"), rv=$("rv");
     const clip=v=>{ rv.style.clipPath=v; rv.style.webkitClipPath=v; };
     ov.classList.remove("out"); ov.classList.add("pre"); ov.hidden=false;
-    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45%)"); num.textContent=n; num.style.transform="translateY(-50%) scale(.35)"; rv.style.opacity=".85";
+    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45%)"); num.textContent=(n===null?"":n); num.style.transform="translateY(-50%) scale(.35)"; rv.style.opacity=".85";
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
-    const SPIN=fast?.8:2.3, EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
+    const bulk=(n===null); const SPIN=bulk?2.1:(fast?.8:2.3), EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
@@ -323,7 +323,7 @@ function runDraw(n, fast, onReveal){
       if(phase==="spin"){
         spin=1.57;
         angle+=spin*dt; step(dt); drawWheel(null);
-        if(t>=SPIN){ phase="emerge"; t0=now; }
+        if(t>=SPIN){ phase=bulk?"closing":"emerge"; t0=now; }
       } else if(phase==="emerge"){
         angle+=spin*dt; step(dt); drawWheel(null);
         if(!bits.length){ initConfetti(); onReveal&&onReveal(); }
@@ -336,7 +336,7 @@ function runDraw(n, fast, onReveal){
         drawConfetti(t,a);
         if(t>=HOLD+FADE+PLAIN){ phase="closing"; t0=now; }
       } else if(phase==="closing"){
-        ov.style.transition="none"; const o=Math.max(0,1-t/OUT); ov.style.opacity=o.toFixed(3);
+        ov.style.transition="none"; const o=Math.max(0,1-t/(bulk?.25:OUT)); ov.style.opacity=o.toFixed(3);
         if(o<=0){ finish(); return; }
       }
       raf=requestAnimationFrame(loop);
@@ -355,12 +355,25 @@ async function drawOne(fast){
   sendState(); return true;
 }
 $("btnDraw").onclick=async()=>{ if(busy) return; busy=true; await drawOne(false); busy=false; };
-$("btnBulk").onclick=async()=>{ if(busy) return; busy=true; while(await drawOne(true)){} busy=false; };
+// 一括抽選: 確認 → ガラポンが1回回る → 消えたら残りのマスが全部一気に埋まる（実機と同じ）
+async function doBulk(){
+  if(busy) return; const left=Math.max(0,S.slots-drawn.length); if(!left) return;
+  busy=true; const picks=[];
+  for(let k=0;k<left;k++){ let n=null;
+    if(queue.length) n=queue.shift();
+    else { const p=pool().filter(x=>!picks.includes(x)); if(!p.length) break; n=p[Math.floor(Math.random()*p.length)]; }
+    picks.push(n); }
+  if(picks.length){ await runDraw(null,false); drawn.push(...picks); render(); sendState(); }
+  busy=false;
+}
+let cfmAction=null;
+function confirmBox(title,titleColor,msg,okLabel,action){ $("cfmT").textContent=title; $("cfmT").style.color=titleColor; $("cfmM").innerHTML=msg; $("cfmYes").textContent=okLabel; cfmAction=action; $("cfm").hidden=false; }
+$("btnBulk").onclick=()=>{ if(busy || drawn.length>=S.slots) return; confirmBox("メッセージ","#000","すべての賞品を一括抽選しますか？","一括抽選",doBulk); };
 
 /* reset with in-page confirm (tap twice) */
-$("btnReset").onclick=()=>{ if(busy) return; $("cfm").hidden=false; };
-$("cfmNo").onclick=()=>{ $("cfm").hidden=true; };
-$("cfmYes").onclick=()=>{ $("cfm").hidden=true; drawn=[]; render(); sendState(); };
+$("btnReset").onclick=()=>{ if(busy) return; confirmBox("注意","#ff383c","抽選結果をリセットしますか？<br>この操作は取り消すことができません","リセット",()=>{ drawn=[]; render(); sendState(); }); };
+$("cfmNo").onclick=()=>{ $("cfm").hidden=true; cfmAction=null; };
+$("cfmYes").onclick=()=>{ $("cfm").hidden=true; const a=cfmAction; cfmAction=null; a&&a(); };
 
 /* settings */
 $("btnSettings").onclick=()=>{ $("inTitle").value=S.title; $("inMin").value=S.min; $("inMax").value=S.max; $("inSlots").value=S.slots; $("inRoom").value=room; $("inAd").value=S.ad||"ads"; $("sheet").hidden=false; };
