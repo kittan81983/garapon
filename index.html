@@ -70,6 +70,13 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .num{position:absolute;left:0;right:0;top:52%;transform:translateY(-50%);transform-origin:50% 50%;text-align:center;font-family:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",var(--font);font-weight:800;color:var(--num);font-size:min(31vw,138px);line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;pointer-events:none}
 #cf{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:21}
 .tap{display:none}
+/* settings sheet */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;display:grid;align-items:end;justify-items:center}
+.panel{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+.panel h2{margin:0;font-size:16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+.row input{width:110px;font:700 16px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink);text-align:right}
+.ok{background:var(--pink);color:#fff;border:0;border-radius:10px;padding:12px;font:700 15px var(--font);cursor:pointer}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
@@ -132,6 +139,7 @@ const $ = id => document.getElementById(id);
 const S = { title:"11/5オリパ", min:1, max:150, slots:28 };
 try { Object.assign(S, JSON.parse(localStorage.getItem("garapon-settings")||"{}")); } catch(e){}
 let drawn = [];
+try{ const dv=JSON.parse(localStorage.getItem("garapon-drawn")||"[]"); if(Array.isArray(dv)) drawn=dv.map(Number).filter(n=>isFinite(n)); }catch(e){}
 let busy = false;
 let queue = [], banned = [];
 try{ const sv=JSON.parse(localStorage.getItem("garapon-secret")||"{}"); queue=sv.queue||[]; banned=sv.banned||[]; }catch(e){}
@@ -168,6 +176,7 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden) connect(
 
 function pool(){ const a=[]; for(let n=S.min;n<=S.max;n++) if(!drawn.includes(n) && !banned.includes(n)) a.push(n); return a; }
 function render(){
+  try{ localStorage.setItem("garapon-drawn",JSON.stringify(drawn)); }catch(e){}
   $("title").textContent = S.title;
   const g=$("grid"); g.innerHTML="";
   const count=Math.max(S.slots, drawn.length);
