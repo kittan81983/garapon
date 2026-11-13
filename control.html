@@ -93,11 +93,9 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
   </div>
 
   <div class="row">
-    <button class="btn" id="bClose">結果を閉じる</button>
-    <button class="btn" id="bUndo">1つ取り消す</button>
+    <button class="btn" id="bClose" style="grid-column:1/-1">結果を閉じる</button>
     <button class="btn" id="bClear">予約を全部消す</button>
-    <button class="btn danger" id="bReset">リセット</button>
-    <button class="btn" id="bClearBan" style="grid-column:1/-1">除外を全部消す</button>
+    <button class="btn" id="bClearBan">除外を全部消す</button>
   </div>
 
   <div class="card">
@@ -105,7 +103,7 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
     <div class="mirror" id="mirror"></div>
   </div>
 
-  <div class="foot">表示側の歯車 → 「連携コード」に右上のコードを入れるとつながります。<br>予約した番号は、表示側で「抽選」が押されたときに順番に出ます。<br>除外した番号は、ランダムでも一括抽選でも出ません。</div>
+  <div class="foot">表示側の歯車 → 「抽選イベント設定」→「連携コード」に右上のコードを入れるとつながります。<br>予約した番号は、表示側で「抽選」が押されたときに順番に出ます。<br>除外した番号は、ランダムでも一括抽選でも出ません。</div>
 </div>
 
 <div class="sheet" id="sheet" hidden>
@@ -175,13 +173,9 @@ $("pad").addEventListener("click",e=>{ const b=e.target.closest(".k"); if(!b) re
   render(); });
 
 $("bClose").onclick=()=>send({t:"close"});
-$("bUndo").onclick=()=>send({t:"undo"});
 $("bClear").onclick=()=>{ queue=[]; pushQueue(); };
 $("bClearBan").onclick=()=>{ banned=[]; pushBan(); };
 $("seg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; mode=b.dataset.m; render(); });
-let arm=0; $("bReset").onclick=()=>{ const b=$("bReset");
-  if(Date.now()-arm<2500){ send({t:"reset"}); arm=0; b.textContent="リセット"; b.classList.remove("armed"); }
-  else{ arm=Date.now(); b.textContent="もう一度押す"; b.classList.add("armed"); setTimeout(()=>{ if(Date.now()-arm>=2400){ b.textContent="リセット"; b.classList.remove("armed"); } },2500); } };
 
 $("codeBtn").onclick=()=>{ $("inCode").value=room; $("sheet").hidden=false; };
 $("sheet").addEventListener("click",e=>{ if(e.target.id==="sheet") $("sheet").hidden=true; });
