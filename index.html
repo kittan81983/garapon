@@ -25,7 +25,7 @@ html{height:100%;box-sizing:border-box;background:linear-gradient(var(--pink) 0 
 body{height:100%;margin:0}
 body{background:var(--white);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--pink)}
-.app{height:100%;display:flex;flex-direction:column;max-width:520px;margin:0 auto;background:var(--pink)}
+.app{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:0;display:flex;flex-direction:column;max-width:520px;margin:0 auto;background:var(--pink)}
 header{display:flex;align-items:center;justify-content:space-between;padding-block:3px 13px;padding-left:max(21px,env(safe-area-inset-left,0px));padding-right:max(21px,env(safe-area-inset-right,0px))}
 header h1{flex:1;text-align:center;font-size:15px;font-weight:800;margin:0;color:#fff;letter-spacing:.02em}
 .pill{display:flex;background:var(--pill);border-radius:19px;height:37px}
@@ -485,7 +485,7 @@ applyAd();
 render();
 connect();
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261114-0055";
+const APP_VER="20261114-0150";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
