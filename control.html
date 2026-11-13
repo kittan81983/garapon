@@ -49,6 +49,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);-webk
 .seg button.on{background:#44444f;color:var(--fg)}
 .seg button.on.ban{background:#5a4a1f;color:#ffd98a}
 .k.add.ban{background:#b8892a}
+.k.add:disabled{opacity:.35;cursor:not-allowed}
+.entry .warn{color:#ff8a9b;font-weight:700;text-align:right;max-width:60%}
 .chip.ban{background:#3a3220;color:#ffe2a8;border-color:#5c4c25;text-decoration:line-through}
 .queue.banq .chip:first-child{background:#3a3220;color:#ffe2a8;border-color:#5c4c25}
 .m.x{color:#6b5a30;text-decoration:line-through}
@@ -139,13 +141,25 @@ function send(m){ m.from=me; m.at=Date.now(); return fetch("https://ntfy.sh/"+to
 function pushQueue(){ render(); send({t:"queue",queue}); }
 function pushBan(){ render(); send({t:"ban",banned}); }
 
+// 入力できない番号の理由（なければ空）
+function problem(n){
+  if(state && (n<state.min||n>state.max)) return `範囲外の番号です（${state.min}〜${state.max}）`;
+  if(state && state.drawn.includes(n)) return "もう出ている番号なので入力できません";
+  if(mode==="q"){
+    if(queue.includes(n)) return "もう予約に入っています";
+    if(banned.includes(n)) return "除外に入っている番号です（先に除外から消してください）";
+    if(state && queue.length >= state.slots-state.drawn.length) return "残りのマスより多くは予約できません";
+  } else {
+    if(banned.includes(n)) return "もう除外に入っています";
+    if(queue.includes(n)) return "予約に入っている番号です（先に予約から消してください）";
+  }
+  return "";
+}
 function render(){
   const v=$("val"); if(entry){ v.textContent=entry; v.classList.remove("empty"); } else { v.textContent="番号を入力"; v.classList.add("empty"); }
-  let w=""; const n=Number(entry);
-  if(entry && state){ if(state.drawn.includes(n)) w="もう出ている番号です"; else if(n<state.min||n>state.max) w=`範囲外（${state.min}〜${state.max}）`; }
-  if(entry && mode==="q" && banned.includes(n)) w="除外に入っている番号です（予約が優先されます）";
-  if(entry && mode==="b" && banned.includes(n)) w="もう除外に入っています";
+  const w=entry?problem(Number(entry)):"";
   $("addKey").textContent = mode==="q" ? "予約" : "除外"; $("addKey").classList.toggle("ban",mode==="b");
+  $("addKey").disabled = !entry || !!w;
   document.querySelectorAll("#seg button").forEach(b=>b.classList.toggle("on",b.dataset.m===mode));
   const bq=$("banq"); bq.innerHTML="";
   if(!banned.length) bq.innerHTML='<span class="none">除外なし</span>';
@@ -167,7 +181,7 @@ function render(){
 
 $("pad").addEventListener("click",e=>{ const b=e.target.closest(".k"); if(!b) return; const k=b.dataset.k;
   if(k==="del") entry=entry.slice(0,-1);
-  else if(k==="add"){ if(entry){ const n=Number(entry); entry="";
+  else if(k==="add"){ if(entry){ const n=Number(entry); if(problem(n)){ render(); return; } entry="";
       if(mode==="q"){ queue.push(n); pushQueue(); } else { if(!banned.includes(n)) banned.push(n); banned.sort((a,b)=>a-b); pushBan(); } return; } }
   else if(entry.length<5) entry=(entry+b.textContent).replace(/^0+/,"");
   render(); });

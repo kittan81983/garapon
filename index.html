@@ -410,9 +410,10 @@ function runDraw(n, fast, onReveal){
 }
 $("ov").addEventListener("click",()=>closeResolve&&closeResolve());
 
+function nextQueued(extra){ while(queue.length){ const n=queue.shift(); if(!drawn.includes(n) && !(extra||[]).includes(n) && n>=S.min && n<=S.max) return n; } return null; }
 async function drawOne(fast){
   const p=pool(); if((!p.length && !queue.length)||drawn.length>=S.slots) return false;
-  const n = queue.length ? queue.shift() : p[Math.floor(Math.random()*p.length)];
+  let n = nextQueued(); if(n===null){ if(!p.length) return false; n=p[Math.floor(Math.random()*p.length)]; }
   await runDraw(n, fast, ()=>{ drawn.push(n); render(); markHit(drawn.length-1); });
   sendState(); return true;
 }
@@ -422,8 +423,8 @@ async function doBulk(){
   if(busy) return; const left=Math.max(0,S.slots-drawn.length); if(!left) return;
   busy=true; const picks=[];
   for(let k=0;k<left;k++){ let n=null;
-    if(queue.length) n=queue.shift();
-    else { const p=pool().filter(x=>!picks.includes(x)); if(!p.length) break; n=p[Math.floor(Math.random()*p.length)]; }
+    n=nextQueued(picks);
+    if(n===null) { const p=pool().filter(x=>!picks.includes(x)); if(!p.length) break; n=p[Math.floor(Math.random()*p.length)]; }
     picks.push(n); }
   if(picks.length){ await runDraw(null,false); drawn.push(...picks); render(); sendState(); }
   busy=false;
