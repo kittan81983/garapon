@@ -6,17 +6,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>11/5オリパ</title>
 <meta name="apple-mobile-web-app-title" content="抽選">
-<link rel="apple-touch-icon" href="icon.png?v=2">
+<link rel="apple-touch-icon" href="icon.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:0}*,*::before,*::after{box-sizing:border-box}</style>
-<meta name="theme-color" content="#ea506a">
+<meta name="theme-color" content="#ff345b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 /* Layout: one-screen phone app — pink header with pill buttons, white sheet with slot grid, three round buttons at the bottom */
 :root{
-  --pink:#ea506a; --pill:#983f51; --white:#ffffff; --cell:#f4f4f4; --hit:#fbecef;
-  --gray:#818183; --idx:#7c7c7e; --ink:#000000; --bulk:#f8d9df; --bulk-ink:#d94f6a; --reset-ink:#393c43;
-  --card:#fff3f8; --panel:#fb1e56; --num:#f2325f; --rim:#ffffff;
+  --pink:#ff345b; --pill:#9a3045; --white:#ffffff; --cell:#f1f1f1; --hit:#fbe7ec;
+  --gray:#818183; --idx:#7c7c7e; --ink:#000000; --bulk:#fcd1db; --bulk-ink:#eb4168; --reset-ink:#393c43;
+  --card:#ffffff; --panel:#fc3458; --num:#fc3458; --rim:#ffffff;
   --font:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
   color-scheme:light;
 }
@@ -64,7 +64,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .15s}
 
 .ov.pre{opacity:0}
-.stage{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 200px);transform:translateX(-50%);width:min(88vw,400px);aspect-ratio:1;max-width:100%;border-radius:9px;overflow:hidden;background:var(--panel)}
+.stage{position:absolute;left:50%;top:51.4%;transform:translate(-50%,-50%);width:min(92.7vw,480px);aspect-ratio:1;max-width:100%;border-radius:9px;overflow:hidden;background:var(--panel)}
 .rv{position:absolute;inset:0;background:var(--card);clip-path:circle(0% at 50% 50%);-webkit-clip-path:circle(0% at 50% 50%)}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%}
 .num{position:absolute;left:0;right:0;top:52%;transform:translateY(-50%);transform-origin:50% 50%;text-align:center;font-family:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",var(--font);font-weight:800;color:var(--num);font-size:min(31vw,138px);line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;pointer-events:none}
@@ -190,50 +190,39 @@ function fit(){
   SW=innerWidth; SH=innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
   const sb=$("stage").getBoundingClientRect(), cb=cf.getBoundingClientRect(); panelBox={x:sb.left-cb.left,y:sb.top-cb.top,w:sb.width,h:sb.height};
 }
-const COLORS=["#1d8ae3","#f8b500","#10338f","#de82d6","#6ee000","#1d8ae3","#f8b500","#10338f","#de82d6","#6ee000","#f8b500"];
-let balls=[], angle=0, spin=0;
+const COLORS=["#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#fe82c6","#fe82c6"];
+let balls=[], angle=0, spin=0, lastShuffle=0;
+// 実機と同じ動き: 玉は物理計算せず、0.1秒ごとに中の並びがパッと入れ替わる（これが「震え」に見える）
+const BR=.211, INNER=.744;
 function initBalls(){
-  balls=[]; for(let i=0;i<COLORS.length;i++){ const a=Math.random()*Math.PI*2, d=Math.random()*.55;
-    balls.push({x:Math.cos(a)*d, y:.25+Math.sin(a)*d*.5, vx:(Math.random()-.5), vy:0, c:COLORS[i]}); }
+  const order=COLORS.slice().sort(()=>Math.random()-.5);
+  const pile=Math.random()<.5; balls=[];
+  for(const c of order){ let best=null, bestD=-1;
+    for(let k=0;k<40;k++){ const a=Math.random()*Math.PI*2; let r=Math.sqrt(Math.random())*INNER;
+      let x=Math.cos(a)*r, y=Math.sin(a)*r; if(pile){ y=Math.abs(y)*.9+.05; if(Math.hypot(x,y)>INNER){ const d=Math.hypot(x,y); x*=INNER/d; y*=INNER/d; } }
+      let md=9; for(const o of balls) md=Math.min(md,Math.hypot(o.x-x,o.y-y));
+      if(md>BR*1.75){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
+    balls.push({x:best.x,y:best.y,c}); }
 }
-// physics in unit space: drum radius 1 (smooth: small substeps, soft contacts, no spoke collisions)
-const BR=.205, G=22;
-function step(dt){
-  const inner=1-BR-.035, sub=6, h=dt/sub;
-  for(let k=0;k<sub;k++){
-    for(const b of balls){ b.vy+=G*h; b.vx*=.999; b.vy*=.999; b.x+=b.vx*h; b.y+=b.vy*h; }
-    for(let it=0;it<2;it++){
-      for(let i=0;i<balls.length;i++)for(let j=i+1;j<balls.length;j++){
-        const a=balls[i], c=balls[j]; let dx=c.x-a.x, dy=c.y-a.y; const d2=dx*dx+dy*dy;
-        if(d2<4*BR*BR){ const d=Math.sqrt(d2)||1e-4, o=(BR*2-d)*.5; dx/=d; dy/=d; a.x-=dx*o; a.y-=dy*o; c.x+=dx*o; c.y+=dy*o;
-          const rv=(c.vx-a.vx)*dx+(c.vy-a.vy)*dy; if(rv<0){ const im=rv*.65; a.vx+=dx*im; a.vy+=dy*im; c.vx-=dx*im; c.vy-=dy*im; } }
-      }
-      for(const b of balls){ const d=Math.hypot(b.x,b.y);
-        if(d>inner){ const nx=b.x/d, ny=b.y/d; b.x=nx*inner; b.y=ny*inner;
-          const vn=b.vx*nx+b.vy*ny; if(vn>0){ b.vx-=vn*nx*1.35; b.vy-=vn*ny*1.35; }
-          if(it===0){ const tx=-ny, ty=nx, wallV=spin*inner, vt=b.vx*tx+b.vy*ty, f=(wallV-vt)*.1; b.vx+=tx*f; b.vy+=ty*f; } } }
-    }
-  }
-}
+function step(dt){ const now=performance.now(); if(now-lastShuffle>=100){ lastShuffle=now; initBalls(); } }
 function drawWheel(out){
-  const s=W, cx=s/2, cy=s*.465, R=s*.32, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
+  const s=W, cx=s*.499, cy=s*.45, R=s*.323, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
   ctx.clearRect(0,0,s,s);
   ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
   // stand
-  ctx.lineWidth=s*.013;
-  const fy=cy+R*1.24;
-  ctx.beginPath(); ctx.moveTo(cx-R*.27,cy+R*.95); ctx.lineTo(cx-R*.4,fy); ctx.moveTo(cx+R*.27,cy+R*.95); ctx.lineTo(cx+R*.4,fy);
-  ctx.moveTo(cx-R*.56,fy); ctx.lineTo(cx+R*.56,fy); ctx.stroke();
+  ctx.lineCap="butt"; const fy=cy+R*1.32;
+  ctx.lineWidth=s*.0106; ctx.beginPath(); ctx.moveTo(cx-R*.347,cy+R*1.0); ctx.lineTo(cx-R*.435,fy); ctx.moveTo(cx+R*.347,cy+R*1.0); ctx.lineTo(cx+R*.435,fy); ctx.stroke();
+  ctx.lineWidth=s*.014; ctx.beginPath(); ctx.moveTo(cx-R*.592,fy); ctx.lineTo(cx+R*.592,fy); ctx.stroke(); ctx.lineCap="round";
   // balls
   ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
   for(const b of balls){ ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(cx+b.x*R,cy+b.y*R,BR*R,0,Math.PI*2); ctx.fill(); }
   ctx.restore();
   // spokes
-  ctx.lineWidth=s*.016; const hr=R*.15;
+  ctx.lineWidth=s*.013; const hr=R*.156;
   for(let i=0;i<3;i++){ const a=angle+i*Math.PI*2/3; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*hr,cy+Math.sin(a)*hr); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke(); }
   // rim + hub ring
-  ctx.lineWidth=s*.02; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
-  ctx.lineWidth=s*.017; ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.stroke();
+  ctx.lineWidth=s*.0286; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--panel").trim()||"#fc3458"; ctx.lineWidth=s*.018; ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.fill(); ctx.stroke();
   // big translucent ball with the number zooming out of the drum
   if(out){ const r=R*(.25+.85*out.k);
     ctx.fillStyle=`rgba(255,240,236,${.55+.3*out.k})`; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
@@ -266,7 +255,7 @@ function ribbon(L,W,tw,bend,ph){ // flat paper strip that twists along its lengt
 }
 function drawConfetti(t, alpha, revealing){
   fx.clearRect(0,0,SW,SH); if(alpha<=0) return; fx.globalAlpha=alpha; fx.save();
-  const P=panelBox, cx=P.x+P.w/2, cy=P.y+P.h*.465;
+  const P=panelBox, cx=P.x+P.w/2, cy=P.y+P.h*.45;
   if(revealing){ const pr=Math.max(.001,revealE)*Math.hypot(P.w,P.h)/2;
     fx.beginPath(); fx.arc(cx,cy,pr,0,Math.PI*2); fx.clip();
     const sc=.35+.65*revealE; fx.translate(cx,cy); fx.scale(sc,sc); fx.translate(-cx,-cy); }
@@ -288,8 +277,7 @@ function runDraw(n, fast, onReveal){
     const ov=$("ov"), st=$("stage"), num=$("num"), rv=$("rv");
     const clip=v=>{ rv.style.clipPath=v; rv.style.webkitClipPath=v; };
     ov.classList.remove("out"); ov.classList.add("pre"); ov.hidden=false;
-    { const mb=document.querySelector("main").getBoundingClientRect(), c0=$("grid").children[0]; const ch=c0?c0.getBoundingClientRect().height:78; st.style.top=Math.round(mb.top+16+ch+9+37)+"px"; }
-    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 50% 46.5%)"); num.textContent=n; num.style.transform="translateY(-50%) scale(.35)"; rv.style.opacity=".85";
+    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45%)"); num.textContent=n; num.style.transform="translateY(-50%) scale(.35)"; rv.style.opacity=".85";
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
     const SPIN=fast?.8:2.5, EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
     let t0=performance.now(), last=t0; phase="spin";
@@ -297,13 +285,13 @@ function runDraw(n, fast, onReveal){
     const loop=now=>{
       const dt=Math.min(.033,(now-last)/1000); last=now; const t=(now-t0)/1000;
       if(phase==="spin"){
-        const top=3.8; spin = t<.3? top*(t/.3) : t>SPIN-.35? top*Math.max(.15,(SPIN-t)/.35) : top;
+        spin=1.57;
         angle+=spin*dt; step(dt); drawWheel(null);
         if(t>=SPIN){ phase="emerge"; t0=now; }
       } else if(phase==="emerge"){
         angle+=spin*dt; step(dt); drawWheel(null);
         if(!bits.length){ initConfetti(); onReveal&&onReveal(); }
-        const k=Math.min(1,t/EMERGE), e=1-Math.pow(1-k,2); revealE=.1+.9*e; clip(`circle(${(9+e*71).toFixed(2)}% at 50% 46.5%)`);
+        const k=Math.min(1,t/EMERGE), e=1-Math.pow(1-k,2); revealE=.1+.9*e; clip(`circle(${(9+e*71).toFixed(2)}% at 49.9% 45%)`);
         num.style.transform=`translateY(-50%) scale(${(.35+.65*e).toFixed(3)})`; rv.style.opacity=(.85+.15*e).toFixed(3);
         drawConfetti(0, 1, true);
         if(t>=EMERGE){ phase="result"; t0=now; clip("none"); num.style.transform=""; rv.style.opacity=""; ctx.clearRect(0,0,W,W); sendState(); }
