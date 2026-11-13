@@ -36,15 +36,15 @@ header h1{flex:1;text-align:center;font-size:15px;font-weight:800;margin:0;color
 .sheet-w{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--white);border-radius:12px 12px 0 0}
 main{flex:1;overflow-y:auto;padding-block:16.7px;padding-left:max(16.7px,env(safe-area-inset-left,0px));padding-right:max(16.7px,env(safe-area-inset-right,0px))}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11.7px 9.3px}
-.cell{position:relative;height:79px;max-width:100%;background:var(--cell);border-radius:10px;display:grid;place-items:center;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",var(--font);font-weight:900;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.cell{position:relative;height:78.3px;max-width:100%;background:var(--cell);border-radius:10px;display:grid;place-items:center;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",var(--font);font-weight:900;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
 .cell small{position:absolute;top:4px;left:4px;font-family:var(--font);font-size:11px;font-weight:400;color:var(--idx)}
 .cell span{margin-top:6px}
 .cell .q{color:#7d7d7d;font-weight:800;font-size:22px}
 .cell.filled{background:var(--hit)}
 .cell.hit{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
-.bar{display:flex;align-items:center;justify-content:space-between;padding-block:7.7px 8.3px;padding-left:max(4.5vw,env(safe-area-inset-left,0px));padding-right:max(4.5vw,env(safe-area-inset-right,0px));background:var(--white)}
-.sub{width:min(25.7vw,113px);height:min(25.7vw,113px);border-radius:50%;border:0;font:800 12px var(--font);cursor:pointer;padding:0}
+.bar{display:flex;align-items:center;justify-content:space-between;height:156px;box-sizing:border-box;flex:none;padding-block:0;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
+.sub{width:calc((100vw - 74px - min(31.8vw,140px))/2);height:calc((100vw - 74px - min(31.8vw,140px))/2);border-radius:50%;border:0;font:800 12px var(--font);cursor:pointer;padding:0}
 .bulk{background:var(--bulk);color:var(--bulk-ink)}
 .reset{background:var(--cell);color:var(--reset-ink)}
 .draw{width:min(31.8vw,140px);height:min(31.8vw,140px);border-radius:50%;border:0;background:var(--pink);color:#fff;font:800 19px var(--font);cursor:pointer;padding:0;transition:transform .08s,filter .08s}
@@ -70,11 +70,19 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .row input{width:110px;font:700 16px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink);text-align:right}
 .ok{background:var(--pink);color:#fff;border:0;border-radius:10px;padding:12px;font:700 15px var(--font);cursor:pointer}
 /* bottom ad banner (fictional ads / offline notice) */
-.adwrap{background:var(--white);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 20px))}
+.adwrap{background:var(--white);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 3px))}
 .adwrap.none{padding-bottom:env(safe-area-inset-bottom,0px)}
 .adwrap.none .ad{display:none}
 .ad{position:relative;height:49px;background:#fff;border-top:1px solid #ececec;border-bottom:1px solid #ececec;overflow:hidden;font-family:-apple-system,"Hiragino Sans",sans-serif}
 .ad .slide{position:absolute;inset:0;display:flex;align-items:center;gap:9px;padding:0 30px 0 8px;background:#fff}
+.ad .bk{position:absolute;inset:0;display:flex;align-items:center;padding:1px 7px 0 16px}
+.ad .bki{position:absolute;left:1px;top:19px;width:10px;height:10px;border:1.4px solid #3aa3d2;border-radius:50%;color:#3aa3d2;font:700 8px/10px Georgia,serif;text-align:center}
+.ad .bkd{position:absolute;left:5px;top:33px;width:2.5px;height:2.5px;border-radius:50%;background:#3aa3d2;box-shadow:0 3.5px 0 #3aa3d2,0 7px 0 #3aa3d2}
+.ad .bkt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.18;color:#1d1d1f}
+.ad .bkt small{font-size:8.3px;color:#555;margin-bottom:1px}
+.ad .bkt b{font-weight:500;font-size:11.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad .bkb{flex:none;width:74px;height:22px;border-radius:11px;background:#1c428c;color:#fff;display:flex;align-items:center;justify-content:center;gap:7px;font:600 10px -apple-system,"Hiragino Sans",sans-serif}
+.ad .bkb span{font-size:13px;font-weight:700;margin-top:-2px}
 .ad .ai{flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font:800 17px/1 -apple-system,sans-serif;box-shadow:0 0 0 .5px rgba(0,0,0,.12)}
 .ad .ai svg{width:20px;height:20px}
 .ad .at{flex:1;min-width:0;line-height:1.25}
@@ -146,9 +154,13 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .evl .card b{display:block;margin-top:6px;font:900 21px -apple-system,"Hiragino Sans",sans-serif;color:#000}
 .evl .fab{position:absolute;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 75px);width:44px;height:44px;border-radius:50%;background:var(--pink);border:4px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.12);display:grid;place-items:center;color:#fff}
 .evl .search{position:absolute;left:26px;right:26px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);height:44px;border-radius:22px;background:#fbfbfb;box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;padding:0 17px;color:#8e8e93;font:800 13px -apple-system,"Hiragino Sans",sans-serif}
+/* iOS ホーム画面アプリで画面の高さが短く報告される問題の対策: 実際の画面の高さ(--appH)で全体を描く */
+.app{bottom:auto!important;height:calc(var(--appH,100vh) - env(safe-area-inset-top,0px))!important}
+.ov,#cf,.cfm,.sheet,.smenu,.fsheet,.sdlg,.evl{bottom:auto!important;height:var(--appH,100%)!important}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
+<script>(function(){function f(){var h=innerHeight;try{if((navigator.standalone||matchMedia("(display-mode: standalone)").matches)&&screen.height>h&&screen.width<screen.height===innerWidth<innerHeight)h=screen.height;}catch(e){}document.documentElement.style.setProperty("--appH",h+"px");}f();addEventListener("resize",f);addEventListener("orientationchange",function(){setTimeout(f,300)});})();</script>
 </head>
 <body>
 <div class="app">
@@ -300,7 +312,7 @@ let W=0, DPR=1, SW=0, SH=0, panelBox=null;
 function fit(){
   DPR=Math.min(3,window.devicePixelRatio||1);
   const r=cv.getBoundingClientRect(); W=r.width; cv.width=r.width*DPR; cv.height=r.height*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
-  SW=innerWidth; SH=innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
+  SW=innerWidth; SH=cf.getBoundingClientRect().height||innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
   const sb=$("stage").getBoundingClientRect(), cb=cf.getBoundingClientRect(); panelBox={x:sb.left-cb.left,y:sb.top-cb.top,w:sb.width,h:sb.height};
 }
 const COLORS=["#009dd6","#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#2eff00","#fe82c6","#fe82c6"];
@@ -472,6 +484,7 @@ addEventListener("resize",()=>{ if(!$("ov").hidden) fit(); });
 /* ---------- 下の広告（架空の広告2本を交互に / 機内モード表示） ---------- */
 const PLANE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z"/></svg>';
 const ADS=[
+  {kind:"bank",sp:"みらい信用金庫",l1:"定期預金のお申込みが、スマホでいつでも",l2:"ネットバンキングでかんたん手続き",b:"開く"},
   {ic:'<span style="background:#27b36a;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">¥</span>',t:"ポケット家計簿",s:"レシートを撮るだけで、家計簿が自動で完成",b:"入手"},
   {ic:'<span style="background:#ff8a00;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">英</span>',t:"ハナマル英会話 オンライン",s:"1回25分・初回の無料体験レッスン受付中",b:"開く"},
   {ic:'<span style="background:#6a5cff;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">★</span>',t:"ほしぞらパズル",s:"1日5分の脳トレ。かんたん操作で毎日ログボ",b:"入手"},
@@ -481,7 +494,9 @@ const ADS=[
 let adIdx=0, adTimer=0;
 function adHTML(){
   if(S.ad==="offline") return '<div class="ai">'+PLANE+'</div><div class="at"><b>機内モードがオンです</b><span>インターネットに接続されていないため、広告を表示できません</span></div><span class="ainfo">i</span>';
-  const a=ADS[adIdx%ADS.length]; return '<div class="ai">'+a.ic+'</div><div class="at"><b>'+a.t+'</b><span>'+a.s+'</span></div><div class="ab">'+a.b+'</div><span class="adots">⋮</span>';
+  const a=ADS[adIdx%ADS.length];
+  if(a.kind==="bank") return '<div class="bk"><span class="bki">i</span><span class="bkd"></span><div class="bkt"><small>'+a.sp+'</small><b>'+a.l1+'</b><b>'+a.l2+'</b></div><div class="bkb">'+a.b+'<span>»</span></div></div>';
+  return '<div class="ai">'+a.ic+'</div><div class="at"><b>'+a.t+'</b><span>'+a.s+'</span></div><div class="ab">'+a.b+'</div><span class="adots">⋮</span>';
 }
 function showAd(slide){
   const w=$("adwrap"), el=$("ad"); w.classList.toggle("none",S.ad==="none"); el.classList.toggle("off",S.ad==="offline");
@@ -493,13 +508,13 @@ function showAd(slide){
     setTimeout(()=>old.remove(),500);
   } else { el.innerHTML=""; el.appendChild(nw); }
 }
-function applyAd(){ clearInterval(adTimer); showAd(false); if(S.ad==="ads") adTimer=setInterval(()=>{ adIdx++; showAd(true); },25000); }
+function applyAd(){ clearInterval(adTimer); showAd(false); /* 広告は切り替えない */ }
 $("inAd").addEventListener("change",()=>{ S.ad=$("inAd").value; try{ localStorage.setItem("garapon-settings",JSON.stringify(S)); }catch(e){} applyAd(); });
 applyAd();
 render();
 connect();
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261114-0215";
+const APP_VER="20261114-0225";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
