@@ -15,7 +15,7 @@
 :root{
   --pink:#ea506a; --pill:#983f51; --white:#ffffff; --cell:#f4f4f4; --hit:#fbecef;
   --gray:#818183; --idx:#7c7c7e; --ink:#000000; --bulk:#f8d9df; --bulk-ink:#d94f6a; --reset-ink:#393c43;
-  --card:#fbecef;
+  --card:#fde6e3; --panel:#ee3b52; --num:#e8384f; --rim:#fde4dd;
   --font:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
   color-scheme:light;
 }
@@ -60,22 +60,16 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .ad .adm{position:absolute;top:1px;right:3px;color:#7fb6e6;font:700 10px/11px var(--font)}
 
 /* overlay */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:grid;place-items:center;z-index:20;padding:16px}
-.stage{position:relative;width:min(86vw,380px);aspect-ratio:1;max-width:100%;border-radius:10px;overflow:hidden;background:var(--pink);box-shadow:0 18px 40px rgba(0,0,0,.25);transition:background .25s}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .2s}
+.ov.out{opacity:0}
+.stage{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 108px);transform:translateX(-50%);width:min(89vw,400px);aspect-ratio:1;max-width:100%;border-radius:9px;overflow:hidden;background:var(--panel)}
 .stage.result{background:var(--card)}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%}
-.num{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;color:var(--pink);font-size:clamp(64px,24vw,118px);letter-spacing:-.02em;font-variant-numeric:tabular-nums;pointer-events:none}
-.num.show{animation:zoom .55s cubic-bezier(.2,1.5,.4,1)}
-@keyframes zoom{0%{transform:scale(.2);opacity:0}100%{transform:scale(1);opacity:1}}
-.tap{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:11px;color:var(--reset-ink);opacity:.5}
-
-/* settings sheet */
-.sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;display:grid;align-items:end;justify-items:center}
-.panel{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:grid;gap:14px}
-.panel h2{margin:0;font-size:16px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
-.row input{width:110px;font:700 16px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink);text-align:right}
-.ok{background:var(--pink);color:#fff;border:0;border-radius:10px;padding:12px;font:700 15px var(--font);cursor:pointer}
+.num{position:absolute;left:0;right:0;top:52%;transform:translateY(-50%);text-align:center;font-family:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",var(--font);font-weight:800;color:var(--num);font-size:min(31vw,138px);line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;pointer-events:none}
+.num.show{animation:numin .28s ease-out}
+@keyframes numin{0%{transform:translateY(-50%) scale(.82);opacity:.2}100%{transform:translateY(-50%) scale(1);opacity:1}}
+#cf{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:21}
+.tap{display:none}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
@@ -117,6 +111,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
     <div class="num" id="num" hidden></div>
     <div class="tap" id="tap" hidden></div>
   </div>
+  <canvas id="cf"></canvas>
 </div>
 
 <div class="sheet" id="sheet" hidden>
@@ -187,109 +182,122 @@ function render(){
 function markHit(i){ const c=$("grid").children[i]; if(c){ c.classList.add("hit"); c.scrollIntoView({block:"nearest",behavior:"smooth"}); } }
 
 /* ---------- canvas wheel ---------- */
-const cv=$("cv"), ctx=cv.getContext("2d");
-let W=0, DPR=1;
-function fit(){ DPR=Math.min(3,window.devicePixelRatio||1); const r=cv.getBoundingClientRect(); W=r.width; cv.width=r.width*DPR; cv.height=r.height*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
-const COLORS=["#f6a623","#3aa0e8","#7ed321","#ff6fa8","#9b59ff","#2ecfc0","#ffd93b","#ff7b3a","#4a6cf7","#e94b5f","#b4e04a","#5fd0ff"];
+const cv=$("cv"), ctx=cv.getContext("2d"), cf=$("cf"), fx=cf.getContext("2d");
+let W=0, DPR=1, SW=0, SH=0, panelBox=null;
+function fit(){
+  DPR=Math.min(3,window.devicePixelRatio||1);
+  const r=cv.getBoundingClientRect(); W=r.width; cv.width=r.width*DPR; cv.height=r.height*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  SW=innerWidth; SH=innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
+  const sb=$("stage").getBoundingClientRect(), cb=cf.getBoundingClientRect(); panelBox={x:sb.left-cb.left,y:sb.top-cb.top,w:sb.width,h:sb.height};
+}
+const COLORS=["#8fd630","#283a8e","#f6a21e","#f37aa8","#5cb0ea","#ffa3c4","#8fd630","#f6a21e","#283a8e","#5cb0ea","#f37aa8","#ffa3c4","#8fd630","#f6a21e"];
 let balls=[], angle=0, spin=0;
-
 function initBalls(){
-  balls=[]; for(let i=0;i<15;i++){ const a=Math.random()*Math.PI*2, d=Math.random()*.5;
-    balls.push({x:Math.cos(a)*d, y:.3+Math.sin(a)*d*.4, vx:0, vy:0, c:COLORS[i%COLORS.length]}); }
+  balls=[]; for(let i=0;i<COLORS.length;i++){ const a=Math.random()*Math.PI*2, d=Math.random()*.55;
+    balls.push({x:Math.cos(a)*d, y:.25+Math.sin(a)*d*.5, vx:(Math.random()-.5), vy:0, c:COLORS[i]}); }
 }
 // physics in unit space: drum radius 1
-const BR=.17, G=2.6;
+const BR=.185, G=3.2;
 function step(dt){
-  const inner=1-BR-.03;
-  for(const b of balls){ b.vy+=G*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; }
-  for(let k=0;k<3;k++){
+  const inner=1-BR-.035, sub=3, h=dt/sub;
+  for(let k=0;k<sub;k++){
+    for(const b of balls){ b.vy+=G*h; b.x+=b.vx*h; b.y+=b.vy*h; }
     for(let i=0;i<balls.length;i++)for(let j=i+1;j<balls.length;j++){
       const a=balls[i], b=balls[j]; let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1e-4;
       if(d<BR*2){ const o=(BR*2-d)/2; dx/=d; dy/=d; a.x-=dx*o; a.y-=dy*o; b.x+=dx*o; b.y+=dy*o;
-        const rv=(b.vx-a.vx)*dx+(b.vy-a.vy)*dy; if(rv<0){ const im=rv*.9; a.vx+=dx*im; a.vy+=dy*im; b.vx-=dx*im; b.vy-=dy*im; } }
+        const rv=(b.vx-a.vx)*dx+(b.vy-a.vy)*dy; if(rv<0){ const im=rv*.92; a.vx+=dx*im; a.vy+=dy*im; b.vx-=dx*im; b.vy-=dy*im; } }
     }
     for(const b of balls){ const d=Math.hypot(b.x,b.y);
       if(d>inner){ const nx=b.x/d, ny=b.y/d; b.x=nx*inner; b.y=ny*inner;
-        const vn=b.vx*nx+b.vy*ny; if(vn>0){ b.vx-=vn*nx*1.5; b.vy-=vn*ny*1.5; }
-        // wall drags the ball along its rotation (tangent)
-        const tx=-ny, ty=nx, wallV=spin*inner, vt=b.vx*tx+b.vy*ty, f=(wallV-vt)*.35;
+        const vn=b.vx*nx+b.vy*ny; if(vn>0){ b.vx-=vn*nx*1.6; b.vy-=vn*ny*1.6; }
+        const tx=-ny, ty=nx, wallV=spin*inner, vt=b.vx*tx+b.vy*ty, f=(wallV-vt)*.5;
         b.vx+=tx*f; b.vy+=ty*f; } }
+    // spokes paddle the balls
+    for(const b of balls){ for(let q=0;q<3;q++){ const a=angle+q*Math.PI*2/3, ux=Math.cos(a), uy=Math.sin(a);
+      const along=b.x*ux+b.y*uy; if(along<0) continue; const perp=-b.x*uy+b.y*ux;
+      if(Math.abs(perp)<BR){ const side=perp>=0?1:-1; const push=(BR-Math.abs(perp))*side; b.x+=-uy*push; b.y+=ux*push;
+        const sv=spin*along; const vperp=-b.vx*uy+b.vy*ux; if((sv-vperp)*side>0){ b.vx+=-uy*(sv-vperp)*.6; b.vy+=ux*(sv-vperp)*.6; } } } }
   }
 }
 function drawWheel(out){
-  const s=W, cx=s/2, cy=s*.44, R=s*.27, line="#fde6ea";
+  const s=W, cx=s/2, cy=s*.455, R=s*.31, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
   ctx.clearRect(0,0,s,s);
   ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
   // stand
   ctx.lineWidth=s*.012;
-  ctx.beginPath(); ctx.moveTo(cx-R*.55,cy+R*.8); ctx.lineTo(cx-R*.72,cy+R*1.5); ctx.moveTo(cx+R*.55,cy+R*.8); ctx.lineTo(cx+R*.72,cy+R*1.5);
-  ctx.moveTo(cx-R*.95,cy+R*1.5); ctx.lineTo(cx+R*.95,cy+R*1.5); ctx.stroke();
-  // balls (clip inside drum)
+  const fy=cy+R*1.42;
+  ctx.beginPath(); ctx.moveTo(cx-R*.36,cy+R*.93); ctx.lineTo(cx-R*.6,fy); ctx.moveTo(cx+R*.36,cy+R*.93); ctx.lineTo(cx+R*.6,fy);
+  ctx.moveTo(cx-R*.78,fy); ctx.lineTo(cx+R*.78,fy); ctx.stroke();
+  // balls
   ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
-  for(const b of balls){ const x=cx+b.x*R, y=cy+b.y*R, r=BR*R;
-    ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(x-r*.35,y-r*.35,r*.32,0,Math.PI*2); ctx.fill(); }
+  for(const b of balls){ ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(cx+b.x*R,cy+b.y*R,BR*R,0,Math.PI*2); ctx.fill(); }
   ctx.restore();
   // spokes
-  ctx.lineWidth=s*.011;
-  for(let i=0;i<6;i++){ const a=angle+i*Math.PI/3; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*R*.09,cy+Math.sin(a)*R*.09); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke(); }
-  // ring
+  ctx.lineWidth=s*.011; const hr=R*.13;
+  for(let i=0;i<3;i++){ const a=angle+i*Math.PI*2/3; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*hr,cy+Math.sin(a)*hr); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke(); }
+  // rim + hub ring
   ctx.lineWidth=s*.016; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
-  ctx.lineWidth=s*.007; ctx.beginPath(); ctx.arc(cx,cy,R*1.06,0,Math.PI*2); ctx.stroke();
-  // hub
-  ctx.fillStyle="#ea506a"; ctx.lineWidth=s*.011; ctx.beginPath(); ctx.arc(cx,cy,R*.09,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  // emerging ball with number
-  if(out){ const r=R*.34*out.k; ctx.fillStyle="#ffffff"; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle="rgba(234,80,106,.25)"; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle="#ea506a"; ctx.font=`800 ${r*.72}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(out.n,cx,cy+r*.04); }
+  ctx.lineWidth=s*.011; ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.stroke();
+  // big translucent ball with the number zooming out of the drum
+  if(out){ const r=R*(.25+.85*out.k);
+    ctx.fillStyle=`rgba(255,240,236,${.55+.3*out.k})`; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    ctx.lineWidth=s*.008; ctx.strokeStyle="rgba(255,255,255,.9)"; ctx.stroke();
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--num").trim()||"#e8384f";
+    ctx.font=`800 ${r*.5}px "Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(out.n,cx,cy+r*.04); }
 }
 
-/* ---------- confetti ---------- */
-const CF=["#ff6fa8","#f6a623","#3aa0e8","#7ed321","#9b59ff","#ffd93b","#ff7b3a","#2ecfc0"];
+/* ---------- confetti (curly ribbons + specks, over the whole screen) ---------- */
+const CF=["#f37aa8","#f5c23e","#5cb0ea","#f59a42","#8fd14f","#e8384f","#7aa7f0"];
 let bits=[];
 function initConfetti(){
-  bits=[]; for(let i=0;i<90;i++) bits.push({ x:Math.random(), y:Math.random()*1.1-.5, vy:.12+Math.random()*.18, rot:Math.random()*6, vr:(Math.random()-.5)*4,
-    sway:Math.random()*6, c:CF[i%CF.length], kind:Math.random()<.35?"curl":"chip", len:.04+Math.random()*.05 });
+  bits=[]; const P=panelBox;
+  for(let i=0;i<70;i++){ const kind=i<16?"curl":(i<40?"streak":"speck");
+    bits.push({ kind, x:P.x+(Math.random()*1.02-.01)*P.w, y:P.y+(Math.random()*1.05-.18)*P.h,
+      vy:8+Math.random()*22, rot:Math.random()*Math.PI*2, vr:(Math.random()-.5)*1.2, sway:Math.random()*6,
+      c:CF[Math.floor(Math.random()*CF.length)], L:kind==="curl"?P.w*(.12+Math.random()*.1):(kind==="streak"?P.w*(.03+Math.random()*.04):P.w*.012),
+      loops:2+Math.floor(Math.random()*2) }); }
 }
-function drawConfetti(t){
-  const s=W; ctx.clearRect(0,0,s,s);
-  for(const b of bits){ const y=(b.y+b.vy*t), x=b.x+Math.sin(t*1.6+b.sway)*.03; if(y<-.1||y>1.1) continue;
-    ctx.save(); ctx.translate(x*s,y*s); ctx.rotate(b.rot+b.vr*t); ctx.strokeStyle=b.c; ctx.fillStyle=b.c;
-    if(b.kind==="chip"){ ctx.fillRect(-s*.006,-s*.012,s*.012,s*.024); }
-    else{ ctx.lineWidth=s*.008; ctx.lineCap="round"; ctx.beginPath(); const L=b.len*s;
-      for(let u=0;u<=1.001;u+=.1){ const px=(u-.5)*L, py=Math.sin(u*Math.PI*2.2)*L*.18; u===0?ctx.moveTo(px,py):ctx.lineTo(px,py);} ctx.stroke(); }
-    ctx.restore(); }
+function drawConfetti(t, alpha){
+  fx.clearRect(0,0,SW,SH); if(alpha<=0) return; fx.globalAlpha=alpha; fx.lineCap="round"; fx.lineJoin="round";
+  for(const b of bits){ const x=b.x+Math.sin(t*1.4+b.sway)*4, y=b.y+b.vy*t;
+    fx.save(); fx.translate(x,y); fx.rotate(b.rot+b.vr*t); fx.strokeStyle=b.c; fx.fillStyle=b.c;
+    if(b.kind==="curl"){ fx.lineWidth=2.2; fx.beginPath(); const L=b.L, a=L*.09, th=b.loops*Math.PI*2;
+      for(let u=0;u<=1.0001;u+=.02){ const q=u*th, px=(u-.5)*L - a*1.6*Math.sin(q), py=a*Math.cos(q)*1.6; u===0?fx.moveTo(px,py):fx.lineTo(px,py); } fx.stroke(); }
+    else if(b.kind==="streak"){ fx.lineWidth=2; fx.beginPath(); fx.moveTo(-b.L/2,0); fx.quadraticCurveTo(0,b.L*.35,b.L/2,0); fx.stroke(); }
+    else { fx.fillRect(-b.L/2,-b.L,b.L,b.L*2); }
+    fx.restore(); }
+  fx.globalAlpha=1;
 }
 
-/* ---------- sequence ---------- */
+/* ---------- sequence: spin → ball comes out → number + confetti → closes by itself ---------- */
 let raf=0, phase="", closeResolve=null;
 function runDraw(n, fast){
   return new Promise(res=>{
     const ov=$("ov"), st=$("stage"), num=$("num");
-    ov.hidden=false; st.classList.remove("result"); num.hidden=true; $("tap").hidden=true;
-    fit(); initBalls(); angle=0; spin=0;
-    const SPIN = fast? .9 : 2.6, EMERGE = fast? .35 : .7;
+    ov.classList.remove("out"); ov.hidden=false; st.classList.remove("result"); num.hidden=true;
+    fit(); initBalls(); angle=0; spin=0; fx.clearRect(0,0,SW,SH);
+    const SPIN=fast?.8:2.4, EMERGE=fast?.18:.32, HOLD=fast?.5:1.3, FADE=fast?.15:.4, PLAIN=fast?.1:.45;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
       const dt=Math.min(.033,(now-last)/1000); last=now; const t=(now-t0)/1000;
       if(phase==="spin"){
-        const target=7; spin = t<.4? target*(t/.4) : t>SPIN-.5? target*Math.max(0,(SPIN-t)/.5) : target;
+        const top=8.5; spin = t<.3? top*(t/.3) : t>SPIN-.35? top*Math.max(.15,(SPIN-t)/.35) : top;
         angle+=spin*dt; step(dt); drawWheel(null);
         if(t>=SPIN){ phase="emerge"; t0=now; }
       } else if(phase==="emerge"){
-        step(dt); const k=Math.min(1,t/EMERGE); drawWheel({n, k:1-Math.pow(1-k,3)});
-        if(t>=EMERGE+ (fast?.15:.35)){ phase="result"; t0=now; st.classList.add("result"); num.textContent=n; num.hidden=false;
-          num.classList.remove("show"); void num.offsetWidth; num.classList.add("show"); initConfetti(); sendState();
-          setTimeout(()=>{ if(phase==="result") $("tap").hidden=false; }, 900); }
+        angle+=spin*dt; step(dt); const k=Math.min(1,t/EMERGE); drawWheel({n, k:1-Math.pow(1-k,2)});
+        if(t>=EMERGE){ phase="result"; t0=now; ctx.clearRect(0,0,W,W); st.classList.add("result"); num.textContent=n; num.hidden=false;
+          num.classList.remove("show"); void num.offsetWidth; num.classList.add("show"); initConfetti(); sendState(); }
       } else if(phase==="result"){
-        drawConfetti(t);
-        if(fast && t>.9){ finish(); return; }
+        const a = t<HOLD?1:Math.max(0,1-(t-HOLD)/FADE);
+        drawConfetti(t,a);
+        if(t>=HOLD+FADE+PLAIN){ phase="closing"; ov.classList.add("out"); setTimeout(finish,200); return; }
       }
       raf=requestAnimationFrame(loop);
     };
-    const finish=()=>{ cancelAnimationFrame(raf); phase=""; ov.hidden=true; closeResolve=null; res(); };
-    closeResolve=()=>{ if(phase==="result") finish(); };
+    const finish=()=>{ cancelAnimationFrame(raf); phase=""; fx.clearRect(0,0,SW,SH); ov.hidden=true; ov.classList.remove("out"); closeResolve=null; res(); };
+    closeResolve=()=>{ if(phase==="result"){ phase="closing"; cancelAnimationFrame(raf); ov.classList.add("out"); setTimeout(finish,200); } };
     raf=requestAnimationFrame(loop);
   });
 }
