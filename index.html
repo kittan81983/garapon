@@ -84,6 +84,17 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .ad .adots{position:absolute;right:9px;top:3px;color:#2a86e0;font:700 9px/1 sans-serif;letter-spacing:-1px}
 .ad.off .ai{background:#c7c7cc}
 .ad.off .at b{color:#3a3a3c}
+/* reset confirm dialog (measured from the original) */
+.cfm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.7);display:grid;place-items:center;animation:cfmbg .2s ease-out}
+.cfm .box{position:absolute;left:50%;top:51.4%;transform:translate(-50%,-50%);width:min(72.7vw,330px);height:250px;background:#fff;border-radius:11px;display:flex;flex-direction:column;align-items:stretch;padding:19px 17px 15px;animation:cfmin .2s ease-out}
+.cfm h3{margin:0;text-align:center;color:#ff383c;font:800 17px/1.2 -apple-system,"Hiragino Sans",sans-serif}
+.cfm p{flex:1;margin:0;display:grid;place-items:center;text-align:center;color:#000;font:800 11px/1.43 -apple-system,"Hiragino Sans",sans-serif;letter-spacing:.02em}
+.cfm .bt{display:grid;grid-template-columns:1fr 1fr;gap:18.7px}
+.cfm button{height:40px;border:0;border-radius:9px;font:800 11px -apple-system,"Hiragino Sans",sans-serif;letter-spacing:.05em;cursor:pointer}
+.cfm .cn{background:#f4f4f4;color:#8e8e93}
+.cfm .ok2{background:#ffd8e0;color:#ff3e68}
+@keyframes cfmbg{from{background:rgba(0,0,0,0)}}
+@keyframes cfmin{from{opacity:0;transform:translate(-50%,-50%) scale(1.08)}}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
@@ -119,6 +130,14 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
     <div class="tap" id="tap" hidden></div>
   </div>
   <canvas id="cf"></canvas>
+</div>
+
+<div class="cfm" id="cfm" hidden>
+  <div class="box" role="dialog" aria-labelledby="cfmT">
+    <h3 id="cfmT">注意</h3>
+    <p>抽選結果をリセットしますか？<br>この操作は取り消すことができません</p>
+    <div class="bt"><button class="cn" id="cfmNo">キャンセル</button><button class="ok2" id="cfmYes">リセット</button></div>
+  </div>
 </div>
 
 <div class="sheet" id="sheet" hidden>
@@ -339,10 +358,9 @@ $("btnDraw").onclick=async()=>{ if(busy) return; busy=true; await drawOne(false)
 $("btnBulk").onclick=async()=>{ if(busy) return; busy=true; while(await drawOne(true)){} busy=false; };
 
 /* reset with in-page confirm (tap twice) */
-let resetArm=0;
-$("btnReset").onclick=()=>{ if(busy) return; const b=$("btnReset");
-  if(Date.now()-resetArm<2500){ drawn=[]; render(); sendState(); b.textContent="リセット"; resetArm=0; }
-  else{ resetArm=Date.now(); b.textContent="もう一度"; setTimeout(()=>{ if(Date.now()-resetArm>=2400) b.textContent="リセット"; },2500); } };
+$("btnReset").onclick=()=>{ if(busy) return; $("cfm").hidden=false; };
+$("cfmNo").onclick=()=>{ $("cfm").hidden=true; };
+$("cfmYes").onclick=()=>{ $("cfm").hidden=true; drawn=[]; render(); sendState(); };
 
 /* settings */
 $("btnSettings").onclick=()=>{ $("inTitle").value=S.title; $("inMin").value=S.min; $("inMax").value=S.max; $("inSlots").value=S.slots; $("inRoom").value=room; $("inAd").value=S.ad||"ads"; $("sheet").hidden=false; };
