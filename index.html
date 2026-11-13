@@ -43,11 +43,11 @@ main{flex:1;overflow-y:auto;padding-block:16.7px;padding-left:max(16.7px,env(saf
 .cell.filled{background:var(--hit)}
 .cell.hit{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
-.bar{display:flex;align-items:center;justify-content:space-between;padding-block:7.7px 8.3px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
-.sub{width:113px;height:113px;border-radius:50%;border:0;font:800 12px var(--font);cursor:pointer;padding:0}
+.bar{display:flex;align-items:center;justify-content:space-between;padding-block:7.7px 8.3px;padding-left:max(4.5vw,env(safe-area-inset-left,0px));padding-right:max(4.5vw,env(safe-area-inset-right,0px));background:var(--white)}
+.sub{width:min(25.7vw,113px);height:min(25.7vw,113px);border-radius:50%;border:0;font:800 12px var(--font);cursor:pointer;padding:0}
 .bulk{background:var(--bulk);color:var(--bulk-ink)}
 .reset{background:var(--cell);color:var(--reset-ink)}
-.draw{width:140px;height:140px;border-radius:50%;border:0;background:var(--pink);color:#fff;font:800 19px var(--font);cursor:pointer;padding:0;transition:transform .08s,filter .08s}
+.draw{width:min(31.8vw,140px);height:min(31.8vw,140px);border-radius:50%;border:0;background:var(--pink);color:#fff;font:800 19px var(--font);cursor:pointer;padding:0;transition:transform .08s,filter .08s}
 .sub:active,.draw:active{transform:scale(.95);filter:brightness(.95)}
 .draw:disabled{opacity:.5}
 button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
@@ -70,7 +70,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .row input{width:110px;font:700 16px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink);text-align:right}
 .ok{background:var(--pink);color:#fff;border:0;border-radius:10px;padding:12px;font:700 15px var(--font);cursor:pointer}
 /* bottom ad banner (fictional ads / offline notice) */
-.adwrap{background:var(--white);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 3px))}
+.adwrap{background:var(--white);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 20px))}
 .adwrap.none{padding-bottom:env(safe-area-inset-bottom,0px)}
 .adwrap.none .ad{display:none}
 .ad{position:relative;height:49px;display:flex;align-items:center;gap:9px;padding:0 30px 0 8px;background:#fff;border-top:1px solid #ececec;border-bottom:1px solid #ececec;overflow:hidden;font-family:-apple-system,"Hiragino Sans",sans-serif}
@@ -485,7 +485,7 @@ applyAd();
 render();
 connect();
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261114-0150";
+const APP_VER="20261114-0200";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
