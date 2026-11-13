@@ -93,7 +93,6 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
   </div>
 
   <div class="row">
-    <button class="btn big" id="bDraw">表示側で抽選する</button>
     <button class="btn" id="bClose">結果を閉じる</button>
     <button class="btn" id="bUndo">1つ取り消す</button>
     <button class="btn" id="bClear">予約を全部消す</button>
@@ -175,7 +174,6 @@ $("pad").addEventListener("click",e=>{ const b=e.target.closest(".k"); if(!b) re
   else if(entry.length<5) entry=(entry+b.textContent).replace(/^0+/,"");
   render(); });
 
-$("bDraw").onclick=()=>send({t:"draw"});
 $("bClose").onclick=()=>send({t:"close"});
 $("bUndo").onclick=()=>send({t:"undo"});
 $("bClear").onclick=()=>{ queue=[]; pushQueue(); };
