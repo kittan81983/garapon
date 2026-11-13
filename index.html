@@ -43,7 +43,7 @@ main{flex:1;overflow-y:auto;padding-block:16px;padding-left:max(17px,env(safe-ar
 .cell.filled{background:var(--hit)}
 .cell.hit{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
-.bar{display:flex;align-items:center;justify-content:space-between;padding-block:15px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
+.bar{display:flex;align-items:center;justify-content:space-between;padding-block:15px calc(15px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
 .sub{width:97px;height:97px;border-radius:50%;border:0;font:700 15px var(--font);cursor:pointer;padding:0}
 .bulk{background:var(--bulk);color:var(--bulk-ink)}
 .reset{background:var(--cell);color:var(--reset-ink)}
@@ -51,14 +51,6 @@ main{flex:1;overflow-y:auto;padding-block:16px;padding-left:max(17px,env(safe-ar
 .sub:active,.draw:active{transform:scale(.95);filter:brightness(.95)}
 .draw:disabled{opacity:.5}
 button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
-.adwrap{background:var(--white);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
-.ad{position:relative;height:50px;background:#16285a;color:#fff;display:flex;align-items:center;gap:10px;padding:0 10px 0 9px;overflow:hidden}
-.ad .copy{flex:1;min-width:0;font:400 12.5px/1.35 "Hiragino Mincho ProN","Yu Mincho",serif;letter-spacing:.02em}
-.ad .cta{flex:none;background:#fff;color:#16285a;font-size:8.5px;font-weight:700;border-radius:3px;padding:6px 10px;box-shadow:0 1px 2px rgba(0,0,0,.3)}
-.ad .logo{flex:none;border:1.5px solid #fff;padding:2px 6px 1px;text-align:center;font:600 13px/1 Georgia,serif;letter-spacing:.04em}
-.ad .logo small{display:block;font:700 5.5px/1.4 var(--font);letter-spacing:.12em;margin-top:2px}
-.ad .adi{position:absolute;top:1px;right:14px;width:11px;height:11px;border-radius:50%;background:#fff;color:#2a8fd6;font:700 8px/11px Georgia,serif;text-align:center}
-.ad .adm{position:absolute;top:1px;right:3px;color:#7fb6e6;font:700 10px/11px var(--font)}
 
 /* overlay */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .15s}
@@ -100,14 +92,6 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
       <button class="sub bulk" id="btnBulk">一括抽選</button>
       <button class="draw" id="btnDraw">抽選</button>
       <button class="sub reset" id="btnReset">リセット</button>
-    </div>
-    <div class="adwrap" aria-hidden="true">
-      <div class="ad">
-        <div class="copy">週末は、少し遠くへ。<br>海の見える部屋でゆっくりと</div>
-        <div class="cta">今すぐ予約</div>
-        <div class="logo">Seaview<small>HOTELS &amp; RESORTS</small></div>
-        <span class="adi">i</span><span class="adm">⋮</span>
-      </div>
     </div>
   </div>
 </div>
@@ -199,24 +183,30 @@ function fit(){
   SW=innerWidth; SH=innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
   const sb=$("stage").getBoundingClientRect(), cb=cf.getBoundingClientRect(); panelBox={x:sb.left-cb.left,y:sb.top-cb.top,w:sb.width,h:sb.height};
 }
-const COLORS=["#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#fe82c6","#fe82c6"];
+const COLORS=["#009dd6","#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#2eff00","#fe82c6","#fe82c6"];
 let balls=[], angle=0, spin=0, lastShuffle=0;
 // 実機と同じ動き: 玉は物理計算せず、0.1秒ごとに中の並びがパッと入れ替わる（これが「震え」に見える）
 const BR=.211, INNER=.744;
 function initBalls(){
   const order=COLORS.slice().sort(()=>Math.random()-.5);
-  const pile=Math.random()<.5; balls=[];
-  for(const c of order){ let best=null, bestD=-1;
-    for(let k=0;k<40;k++){ const a=Math.random()*Math.PI*2; let r=Math.sqrt(Math.random())*INNER;
-      let x=Math.cos(a)*r, y=Math.sin(a)*r; if(pile){ y=Math.abs(y)*.9+.05; if(Math.hypot(x,y)>INNER){ const d=Math.hypot(x,y); x*=INNER/d; y*=INNER/d; } }
+  balls=[];
+  for(const c of order){ let best=null, bestD=-1; const up=Math.random()<.22;
+    for(let k=0;k<60;k++){ const a=Math.random()*Math.PI*2; let r=Math.sqrt(Math.random())*INNER;
+      let x=Math.cos(a)*r, y=Math.sin(a)*r;
+      if(!up){ // 底にたまる玉
+        y=.15+Math.random()*.6; const lim=Math.sqrt(Math.max(0,INNER*INNER-y*y)); x=(Math.random()*2-1)*lim; }
       let md=9; for(const o of balls) md=Math.min(md,Math.hypot(o.x-x,o.y-y));
-      if(md>BR*1.75){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
+      if(md>BR*1.7){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
     balls.push({x:best.x,y:best.y,c}); }
 }
-function step(dt){ const now=performance.now(); if(now-lastShuffle>=100){ lastShuffle=now; initBalls(); } }
+// 実機の「震え」: ガラポン全体が0.1秒周期で右下へ約2pt動いて戻る（玉の入れ替えと同じ周期）
+const SHAKE=[0,1/6,4/6,1,1,2.5/6]; let shake=0;
+function step(dt){ const now=performance.now(); if(now-lastShuffle>=100){ lastShuffle=now; initBalls(); }
+  shake=SHAKE[Math.min(5,Math.floor((now-lastShuffle)/100*6))]; }
 function drawWheel(out){
   const s=W, cx=s*.499, cy=s*.45, R=s*.323, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
   ctx.clearRect(0,0,s,s);
+  ctx.save(); const sh=shake*s*.0049; ctx.translate(sh,sh);
   ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
   // stand
   ctx.lineCap="butt"; const fy=cy+R*1.32;
@@ -232,6 +222,7 @@ function drawWheel(out){
   // rim + hub ring
   ctx.lineWidth=s*.0286; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
   ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--panel").trim()||"#fc3458"; ctx.lineWidth=s*.018; ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
   // big translucent ball with the number zooming out of the drum
   if(out){ const r=R*(.25+.85*out.k);
     ctx.fillStyle=`rgba(255,240,236,${.55+.3*out.k})`; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
