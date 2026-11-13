@@ -60,7 +60,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .ad .adm{position:absolute;top:1px;right:3px;color:#7fb6e6;font:700 10px/11px var(--font)}
 
 /* overlay */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .2s}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .3s}
 .ov.pre{opacity:0}
 .ov.out{opacity:0}
 .stage{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 200px);transform:translateX(-50%);width:min(88vw,400px);aspect-ratio:1;max-width:100%;border-radius:9px;overflow:hidden;background:var(--panel)}
@@ -215,7 +215,7 @@ function step(dt){
   }
 }
 function drawWheel(out){
-  const s=W, cx=s/2, cy=s*.465, R=s*.32, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
+  const s=W, cx=s/2, cy=s*.46, R=s*.33, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
   ctx.clearRect(0,0,s,s);
   ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
   // stand
@@ -278,13 +278,13 @@ function runDraw(n, fast, onReveal){
     { const mb=document.querySelector("main").getBoundingClientRect(), c0=$("grid").children[0]; const ch=c0?c0.getBoundingClientRect().height:78; st.style.top=Math.round(mb.top+16+ch+9+37)+"px"; }
     requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 50% 46.5%)"); num.textContent=n;
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
-    const SPIN=fast?.8:2.5, EMERGE=fast?.12:.2, HOLD=fast?.5:1.3, FADE=fast?.15:.4, PLAIN=fast?.1:.45;
+    const SPIN=fast?.8:2.9, EMERGE=fast?.12:.2, HOLD=fast?.5:1.3, FADE=fast?.15:.4, PLAIN=fast?.1:.45;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
       const dt=Math.min(.033,(now-last)/1000); last=now; const t=(now-t0)/1000;
       if(phase==="spin"){
-        const top=5.5; spin = t<.3? top*(t/.3) : t>SPIN-.35? top*Math.max(.15,(SPIN-t)/.35) : top;
+        const top=3.8; spin = t<.3? top*(t/.3) : t>SPIN-.35? top*Math.max(.15,(SPIN-t)/.35) : top;
         angle+=spin*dt; step(dt); drawWheel(null);
         if(t>=SPIN){ phase="emerge"; t0=now; }
       } else if(phase==="emerge"){
