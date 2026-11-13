@@ -156,11 +156,14 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .evl .search{position:absolute;left:26px;right:26px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);height:44px;border-radius:22px;background:#fbfbfb;box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;padding:0 17px;color:#8e8e93;font:800 13px -apple-system,"Hiragino Sans",sans-serif}
 /* iOS 26 のホーム画面アプリでは画面下（ステータスバーと同じ高さ）が描けない不具合がある。
    そのときは広告の下の余白をなくして、描ける範囲のいちばん下に広告を置く */
-.vpshort .adwrap:not(.none){padding-bottom:0!important}
+.vpshort .adwrap{padding-bottom:0!important}
+/* 抽選パネルや確認画面は、本物と同じく「画面全体」の高さを基準に置く */
+.vpshort .stage,.vpshort .cfm .box{top:calc((100% + var(--miss,0px)) * .514)!important}
+.vpshort .sdlg .box{top:calc((100% + var(--miss,0px)) * .51)!important}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
-<script>(function(){function f(){var r=document.documentElement,sh=false;try{var st=navigator.standalone||matchMedia("(display-mode: standalone)").matches,por=innerHeight>innerWidth;sh=st&&por&&(screen.height-innerHeight)>20;}catch(e){}r.classList.toggle("vpshort",sh);}f();addEventListener("resize",f);addEventListener("orientationchange",function(){setTimeout(f,300)});})();</script>
+<script>(function(){function f(){var r=document.documentElement,sh=false;try{var st=navigator.standalone||matchMedia("(display-mode: standalone)").matches,por=innerHeight>innerWidth;sh=st&&por&&(screen.height-innerHeight)>20;}catch(e){}r.classList.toggle("vpshort",sh);r.style.setProperty("--miss",(sh?screen.height-innerHeight:0)+"px");}f();addEventListener("resize",f);addEventListener("orientationchange",function(){setTimeout(f,300)});})();</script>
 </head>
 <body>
 <div class="app">
@@ -514,7 +517,7 @@ applyAd();
 render();
 connect();
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261114-0235";
+const APP_VER="20261114-0240";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
