@@ -62,7 +62,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 /* overlay */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .3s}
 .ov.pre{opacity:0}
-.ov.out{opacity:0}
+.ov.out{opacity:0;transition:opacity .4s}
 .stage{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 200px);transform:translateX(-50%);width:min(88vw,400px);aspect-ratio:1;max-width:100%;border-radius:9px;overflow:hidden;background:var(--panel)}
 .rv{position:absolute;inset:0;background:var(--card);clip-path:circle(0% at 50% 50%);-webkit-clip-path:circle(0% at 50% 50%)}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -278,7 +278,7 @@ function runDraw(n, fast, onReveal){
     { const mb=document.querySelector("main").getBoundingClientRect(), c0=$("grid").children[0]; const ch=c0?c0.getBoundingClientRect().height:78; st.style.top=Math.round(mb.top+16+ch+9+37)+"px"; }
     requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 50% 46.5%)"); num.textContent=n;
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
-    const SPIN=fast?.8:2.5, EMERGE=fast?.12:.2, HOLD=fast?.5:1.2, FADE=fast?.15:.3, PLAIN=fast?.1:.4;
+    const SPIN=fast?.8:2.5, EMERGE=fast?.12:.2, HOLD=fast?.5:1.0, FADE=fast?.15:.3, PLAIN=fast?.1:.45;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
@@ -296,12 +296,12 @@ function runDraw(n, fast, onReveal){
       } else if(phase==="result"){
         const a = t<HOLD?1:Math.max(0,1-(t-HOLD)/FADE);
         drawConfetti(t,a);
-        if(t>=HOLD+FADE+PLAIN){ phase="closing"; ov.classList.add("out"); setTimeout(finish,200); return; }
+        if(t>=HOLD+FADE+PLAIN){ phase="closing"; ov.classList.add("out"); setTimeout(finish,400); return; }
       }
       raf=requestAnimationFrame(loop);
     };
     const finish=()=>{ cancelAnimationFrame(raf); phase=""; fx.clearRect(0,0,SW,SH); ov.hidden=true; ov.classList.remove("out"); closeResolve=null; res(); };
-    closeResolve=()=>{ if(phase==="result"){ phase="closing"; cancelAnimationFrame(raf); ov.classList.add("out"); setTimeout(finish,200); } };
+    closeResolve=()=>{ if(phase==="result"){ phase="closing"; cancelAnimationFrame(raf); ov.classList.add("out"); setTimeout(finish,400); } };
     raf=requestAnimationFrame(loop);
   });
 }
