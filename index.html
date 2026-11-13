@@ -487,7 +487,7 @@ addEventListener("resize",()=>{ if(!$("ov").hidden) fit(); });
 /* ---------- 下の広告（架空の広告2本を交互に / 機内モード表示） ---------- */
 const PLANE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z"/></svg>';
 const ADS=[
-  {kind:"bank",sp:"みらい信用金庫",l1:"定期預金のお申込みが、スマホでいつでも",l2:"ネットバンキングでかんたん手続き",b:"開く"},
+  {kind:"bank",sp:"関西産業信用組合",l1:"定期預金のお申込みが、スマホでいつでも",l2:"ネットバンキングでかんたん手続き",b:"開く"},
   {ic:'<span style="background:#27b36a;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">¥</span>',t:"ポケット家計簿",s:"レシートを撮るだけで、家計簿が自動で完成",b:"入手"},
   {ic:'<span style="background:#ff8a00;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">英</span>',t:"ハナマル英会話 オンライン",s:"1回25分・初回の無料体験レッスン受付中",b:"開く"},
   {ic:'<span style="background:#6a5cff;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">★</span>',t:"ほしぞらパズル",s:"1日5分の脳トレ。かんたん操作で毎日ログボ",b:"入手"},
@@ -517,7 +517,7 @@ applyAd();
 render();
 connect();
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261114-0240";
+const APP_VER="20261114-0245";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
