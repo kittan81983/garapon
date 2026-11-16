@@ -126,20 +126,29 @@ const me=Math.random().toString(36).slice(2,9);
 const gen=()=>{ const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; };
 let room=""; try{ room=localStorage.getItem("garapon-ctl-room")||""; }catch(e){}
 if(!room){ room=gen(); try{localStorage.setItem("garapon-ctl-room",room);}catch(e){} }
-let es=null, lastSeen=0, state=null, queue=[], banned=[], entry="", mode="q";
+let es=null, lastSeen=0, state=null, queue=[], banned=[], qrev=0, brev=0, entry="", mode="q", lastEvt=Date.now();
+function saveLocal(){ try{ localStorage.setItem("garapon-ctl-lists-"+room,JSON.stringify({queue,banned,qrev,brev})); }catch(e){} }
+function loadLocal(){ queue=[];banned=[];qrev=0;brev=0; try{ const v=JSON.parse(localStorage.getItem("garapon-ctl-lists-"+room)||"{}"); queue=v.queue||[]; banned=v.banned||[]; qrev=v.qrev||0; brev=v.brev||0; }catch(e){} }
+loadLocal();
 
 function topic(){ return "garapon-v1-"+room.toLowerCase(); }
 function connect(){
   if(es){ es.close(); es=null; }
   $("codeBtn").textContent=room;
-  es=new EventSource("https://ntfy.sh/"+topic()+"/sse");
-  es.onopen=()=>send({t:"hello"});
-  es.onmessage=e=>{ try{ const d=JSON.parse(e.data); if(d.event && d.event!=="message") return; const m=JSON.parse(d.message); if(m.from===me) return;
-    if(m.t==="state"){ state=m; lastSeen=Date.now(); queue=(m.queue||[]).slice(); banned=(m.banned||[]).slice(); render(); } }catch(_){} };
+  es=new EventSource("https://ntfy.sh/"+topic()+"/sse"); lastEvt=Date.now();
+  es.onopen=()=>{ lastEvt=Date.now(); send({t:"hello"}); };
+  es.onerror=()=>{ lastEvt=Math.min(lastEvt,Date.now()-60000); };
+  es.onmessage=e=>{ lastEvt=Date.now(); try{ const d=JSON.parse(e.data); if(d.event && d.event!=="message") return; const m=JSON.parse(d.message); if(m.from===me) return;
+    if(m.t==="state"){ state=m; lastSeen=Date.now();
+      // 表示側のほうが新しければ受け取る。表示側が古ければ（取りこぼし）こちらの内容を送り直す
+      const dq=m.qrev||0, db=m.brev||0;
+      if(dq>=qrev){ queue=(m.queue||[]).slice(); qrev=dq; } else send({t:"queue",queue,qrev});
+      if(db>=brev){ banned=(m.banned||[]).slice(); brev=db; } else send({t:"ban",banned,brev});
+      saveLocal(); render(); } }catch(_){} };
 }
 function send(m){ m.from=me; m.at=Date.now(); return fetch("https://ntfy.sh/"+topic(),{method:"POST",body:JSON.stringify(m)}).catch(()=>{}); }
-function pushQueue(){ render(); send({t:"queue",queue}); }
-function pushBan(){ render(); send({t:"ban",banned}); }
+function pushQueue(){ qrev++; saveLocal(); render(); send({t:"queue",queue,qrev}); }
+function pushBan(){ brev++; saveLocal(); render(); send({t:"ban",banned,brev}); }
 
 // 入力できない番号の理由（なければ空）
 function problem(n){
@@ -194,10 +203,10 @@ $("seg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b
 $("codeBtn").onclick=()=>{ $("inCode").value=room; $("sheet").hidden=false; };
 $("sheet").addEventListener("click",e=>{ if(e.target.id==="sheet") $("sheet").hidden=true; });
 $("bNew").onclick=()=>{ $("inCode").value=gen(); };
-$("bSave").onclick=()=>{ const v=$("inCode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,""); if(v.length>=4){ room=v; try{localStorage.setItem("garapon-ctl-room",room);}catch(e){} state=null; lastSeen=0; connect(); render(); } $("sheet").hidden=true; };
+$("bSave").onclick=()=>{ const v=$("inCode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,""); if(v.length>=4){ room=v; try{localStorage.setItem("garapon-ctl-room",room);}catch(e){} state=null; lastSeen=0; loadLocal(); connect(); render(); } $("sheet").hidden=true; };
 
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ connect(); } });
-setInterval(()=>{ render(); if(Date.now()-lastSeen>20000) send({t:"hello"}); },10000);
+setInterval(()=>{ render(); if(!document.hidden && Date.now()-lastEvt>70000) connect(); else if(Date.now()-lastSeen>20000) send({t:"hello"}); },10000);
 connect(); render();
 })();
 </script>
