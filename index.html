@@ -622,15 +622,16 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0110";
+const APP_VER="20261118-0120";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
-    const m=t.match(/APP_VER="([^"]+)"/); if(m && m[1]!==APP_VER && !busy){ location.replace(location.pathname+"?v="+m[1]); }
+    const m=t.match(/APP_VER="([^"]+)"/); if(m && m[1]!==APP_VER && !busy && $("ov").hidden && $("sec").hidden && $("cfm").hidden){ location.replace(location.pathname+"?v="+m[1]); }
   }).catch(()=>{});
 }
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); });
 setTimeout(checkUpdate,1500);
+setInterval(()=>{ if(!document.hidden) checkUpdate(); },20000); // 開きっぱなしでも20秒ごとに新しい版を確認
 
 })();
 </script>
@@ -642,7 +643,7 @@ document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
    iPhone 11 Proなど一部の機種はそこを「背景色」で塗るので、暗い幕が出ている間は背景色も同じ濃さにする */
 (function(){
   const root=document.documentElement, body=document.body;
-  const LIST=[["#ov",.45,.15],[".sheet",.4,.2],["#cfm",.7,.2],[".fsheet",.35,.2],[".sdlg",.7,.2]];
+  const LIST=[["#ov",.45,.15],[".sheet",.4,.2],["#cfm",.7,.2],[".fsheet",.35,.2],[".sdlg",.7,.2],["#sec",.914,0]];
   let cur=0;
   function shown(el){ return el && !el.hidden && getComputedStyle(el).display!=="none"; }
   function update(){
