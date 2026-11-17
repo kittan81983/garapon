@@ -621,7 +621,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0000";
+const APP_VER="20261118-0010";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
@@ -645,7 +645,11 @@ document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
     const m=cs.backgroundColor.match(/rgba?\(([^)]+)\)/); if(!m) return 0; const p=m[1].split(",").map(parseFloat); const a=p.length>3?p[3]:1;
     return a*(+cs.opacity); }
   function tick(){ let keep=1; document.querySelectorAll(SEL).forEach(el=>{ keep*=1-alphaOf(el); }); const a=Math.round((1-keep)*1000)/1000;
-    if(a!==lastA){ lastA=a; root.style.backgroundImage = a>0 ? `linear-gradient(rgba(0,0,0,${a}),rgba(0,0,0,${a})),linear-gradient(var(--pink) 0 50%,var(--white) 50% 100%)` : ""; }
+    if(a!==lastA){ lastA=a;
+      // 画面外（ホームバーの所）は背景「色」で塗られるので、色そのものも暗くする
+      const w=Math.round(255*(1-a)), col=a>0?`rgb(${w},${w},${w})`:"";
+      root.style.backgroundImage = a>0 ? `linear-gradient(rgba(0,0,0,${a}),rgba(0,0,0,${a})),linear-gradient(var(--pink) 0 50%,var(--white) 50% 100%)` : "";
+      root.style.backgroundColor=col; document.body.style.backgroundColor=col; }
     if(a===0){ if(++idle>20){ run=false; return; } } else idle=0;
     requestAnimationFrame(tick); }
   function kick(){ if(!run){ run=true; idle=0; requestAnimationFrame(tick); } }
