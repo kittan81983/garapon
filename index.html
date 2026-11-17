@@ -94,9 +94,9 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .ad.off .ai{background:#c7c7cc}
 .ad.off .at b{color:#3a3a3c}
 /* reset confirm dialog (measured from the original) */
-.cfm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.7);display:grid;place-items:center;animation:cfmbg .2s ease-out}
-.cfm .box{position:absolute;left:50%;top:51.4%;transform:translate(-50%,-50%);width:min(72.7vw,330px);height:250px;background:#fff;border-radius:11px;display:flex;flex-direction:column;align-items:stretch;padding:19px 17px 15px;animation:cfmin .2s ease-out}
-.cfm h3{margin:0;text-align:center;color:#ff383c;font:800 17px/1.2 -apple-system,"Hiragino Sans",sans-serif}
+.cfm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.735);display:grid;place-items:center}
+.cfm .box{position:absolute;left:50%;top:51.4%;transform:translate(-50%,-50%);width:min(72.7vw,330px);height:250px;background:#fff;border-radius:11px;display:flex;flex-direction:column;align-items:stretch;padding:19px 17px 15px}
+.cfm h3{margin:0;text-align:center;color:#ff383c;font:800 16px/1.275 -apple-system,"Hiragino Sans",sans-serif}
 .cfm p{flex:1;margin:0;display:grid;place-items:center;text-align:center;color:#000;font:800 11px/1.43 -apple-system,"Hiragino Sans",sans-serif;letter-spacing:.02em}
 .cfm .bt{display:grid;grid-template-columns:1fr 1fr;gap:18.7px}
 .cfm button{height:40px;border:0;border-radius:9px;font:800 11px -apple-system,"Hiragino Sans",sans-serif;letter-spacing:.05em;cursor:pointer}
@@ -513,13 +513,29 @@ async function doBulk(){
   busy=false;
 }
 let cfmAction=null;
-function confirmBox(title,titleColor,msg,okLabel,action){ $("cfmT").textContent=title; $("cfmT").style.color=titleColor; $("cfmM").innerHTML=msg; $("cfmYes").textContent=okLabel; cfmAction=action; $("cfm").hidden=false; }
+function confirmBox(title,titleColor,msg,okLabel,action){ $("cfmT").textContent=title; $("cfmT").style.color=titleColor; $("cfmM").innerHTML=msg; $("cfmYes").textContent=okLabel; cfmAction=action; openCfm(); }
+// 実機の録画を1コマずつ測った出方：箱は約0.3倍から勢いよく広がってスッと止まり（約0.25秒）、背景は約0.5秒かけて暗くなる。閉じるときは一瞬で消える
+let cfmRaf=0;
+function openCfm(){
+  const c=$("cfm"), box=c.querySelector(".box"); cancelAnimationFrame(cfmRaf);
+  const t0=performance.now();
+  const f=now=>{ const t=Math.max(0,(now-t0)/1000);
+    const s=1-.705*Math.exp(-t/.0567), d=1-Math.exp(-Math.pow((t+.0167)/.1367,1.15));
+    const done=t>=.7;
+    box.style.transform=done?"":`translate(-50%,-50%) scale(${s.toFixed(4)})`;
+    c.style.background=done?"":`rgba(0,0,0,${(.735*d).toFixed(4)})`;
+    window.paintBand&&paintBand();
+    if(!done && !c.hidden) cfmRaf=requestAnimationFrame(f); };
+  box.style.transform="translate(-50%,-50%) scale(.295)"; c.style.background="rgba(0,0,0,0)"; c.hidden=false; window.paintBand&&paintBand();
+  cfmRaf=requestAnimationFrame(f);
+}
+function closeCfm(){ cancelAnimationFrame(cfmRaf); const c=$("cfm"); c.hidden=true; c.style.background=""; c.querySelector(".box").style.transform=""; window.paintBand&&paintBand(); }
 $("btnBulk").onclick=()=>{ if(busy || drawn.length>=S.slots) return; if(S.askBulk===false){ doBulk(); return; } confirmBox("メッセージ","#000","すべての賞品を一括抽選しますか？","一括抽選",doBulk); };
 
 /* reset with in-page confirm (tap twice) */
 $("btnReset").onclick=()=>{ if(busy) return; if(S.askReset===false){ drawn=[]; render(); sendState(); return; } confirmBox("注意","#ff383c","抽選結果をリセットしますか？<br>この操作は取り消すことができません","リセット",()=>{ drawn=[]; render(); sendState(); }); };
-$("cfmNo").onclick=()=>{ $("cfm").hidden=true; cfmAction=null; };
-$("cfmYes").onclick=()=>{ $("cfm").hidden=true; const a=cfmAction; cfmAction=null; a&&a(); };
+$("cfmNo").onclick=()=>{ closeCfm(); cfmAction=null; };
+$("cfmYes").onclick=()=>{ closeCfm(); const a=cfmAction; cfmAction=null; a&&a(); };
 
 /* settings */
 function openEventSettings(){ $("inTitle").value=S.title; $("inMin").value=S.min; $("inMax").value=S.max; $("inSlots").value=S.slots; $("inRoom").value=room; $("inAd").value=S.ad||"ads"; $("sheet").hidden=false; };
@@ -626,7 +642,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0140";
+const APP_VER="20261118-0150";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
