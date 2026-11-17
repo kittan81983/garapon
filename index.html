@@ -376,17 +376,16 @@ function fit(){
 const COLORS=["#009dd6","#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#2eff00","#fe82c6","#fe82c6"];
 let balls=[], angle=0, spin=0, lastShuffle=0;
 // 実機と同じ動き: 玉は物理計算せず、0.1秒ごとに中の並びがパッと入れ替わる（これが「震え」に見える）
-const BR=.211, INNER=.80;
+const BR=.211, INNER=.745;
 function initBalls(){
-  // 実機：たいていは筒の中全体にバラけて、ときどき下にたまる。重なりは少しだけ
-  const order=COLORS.slice().sort(()=>Math.random()-.5), low=Math.random()<.25;
+  // 実機の録画をコマ送りで測った分布：玉は枠からはみ出さず、毎回「上寄り〜下にたまる」までランダムに偏る。少し重なる
+  const kk=-2.2+Math.random()*7.7;
   balls=[];
-  for(const c of order){ let best=null, bestD=-1;
-    for(let k=0;k<80;k++){ let x,y;
-      if(!low){ const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*INNER; x=Math.cos(a)*r; y=Math.sin(a)*r; }
-      else { y=.05+Math.random()*.75; const lim=Math.sqrt(Math.max(0,INNER*INNER-y*y)); x=(Math.random()*2-1)*lim; }
+  for(const c of COLORS.slice().sort(()=>Math.random()-.5)){ let best=null, bestD=-1;
+    for(let k=0;k<80;k++){ let x,y,g=0;
+      do{ const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*INNER; x=Math.cos(a)*r; y=Math.sin(a)*r; }while(++g<200 && Math.random()>Math.exp(kk*y-Math.abs(kk)*INNER));
       let md=9; for(const o of balls) md=Math.min(md,Math.hypot(o.x-x,o.y-y));
-      if(md>BR*(low?1.45:1.75)){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
+      if(md>BR){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
     balls.push({x:best.x,y:best.y,c}); }
 }
 // 実機の「震え」: ガラポン全体が0.1秒周期で右下へ約2pt動いて戻る（玉の入れ替えと同じ周期）
@@ -394,14 +393,14 @@ const SHAKE=[0,1/6,4/6,1,1,2.5/6]; let shake=0;
 function step(dt){ const now=performance.now(); if(now-lastShuffle>=100){ lastShuffle=now; initBalls(); }
   shake=SHAKE[Math.min(5,Math.floor((now-lastShuffle)/100*6))]; }
 function drawWheel(out){
-  const s=W, cx=s*.499, cy=s*.45, R=s*.323, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
+  const s=W, cx=s*.499, cy=s*.452, R=s*.323, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
   ctx.clearRect(0,0,s,s);
   ctx.save(); const sh=shake*s*.0049; ctx.translate(sh,sh);
   ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
   // stand
   ctx.lineCap="butt"; const fy=cy+R*1.32;
   ctx.lineWidth=s*.0106; ctx.beginPath(); ctx.moveTo(cx-R*.347,cy+R*1.0); ctx.lineTo(cx-R*.435,fy); ctx.moveTo(cx+R*.347,cy+R*1.0); ctx.lineTo(cx+R*.435,fy); ctx.stroke();
-  ctx.lineWidth=s*.014; ctx.beginPath(); ctx.moveTo(cx-R*.592,fy); ctx.lineTo(cx+R*.592,fy); ctx.stroke(); ctx.lineCap="round";
+  ctx.lineWidth=s*.0155; ctx.beginPath(); ctx.moveTo(cx-R*.592,fy); ctx.lineTo(cx+R*.592,fy); ctx.stroke(); ctx.lineCap="round";
   // balls
   ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
   for(const b of balls){ ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(cx+b.x*R,cy+b.y*R,BR*R,0,Math.PI*2); ctx.fill(); }
@@ -410,8 +409,8 @@ function drawWheel(out){
   ctx.lineWidth=s*.013; const hr=R*.156;
   for(let i=0;i<3;i++){ const a=angle+i*Math.PI*2/3; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*hr,cy+Math.sin(a)*hr); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke(); }
   // rim + hub ring
-  ctx.lineWidth=s*.0286; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
-  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--panel").trim()||"#fc3458"; ctx.lineWidth=s*.018; ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.lineWidth=s*.029; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--panel").trim()||"#fc3458"; ctx.lineWidth=s*.0188; ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.fill(); ctx.stroke();
   ctx.restore();
   // big translucent ball with the number zooming out of the drum
   if(out){ const r=R*(.25+.85*out.k);
@@ -428,7 +427,7 @@ let bits=[], revealE=1, revealR=1;
 function initConfetti(){ bits=CONF; }
 function drawConfetti(t, alpha, revealing){
   fx.clearRect(0,0,SW,SH); if(alpha<=0) return; fx.globalAlpha=alpha; fx.save();
-  const P=panelBox, cx=P.x+P.w*.499, cy=P.y+P.h*.45;
+  const P=panelBox, cx=P.x+P.w*.499, cy=P.y+P.h*.452;
   if(revealing){ const pr=Math.max(.001,revealR)*P.w;
     fx.beginPath(); fx.arc(cx,cy,pr,0,Math.PI*2); fx.clip();
     const sc=revealE; fx.translate(cx,cy); fx.scale(sc,sc); fx.translate(-cx,-cy); }
@@ -445,9 +444,9 @@ function runDraw(n, fast, onReveal){
     const ov=$("ov"), st=$("stage"), num=$("num"), rv=$("rv");
     const clip=v=>{ rv.style.clipPath=v; rv.style.webkitClipPath=v; };
     ov.classList.remove("out"); ov.classList.add("pre"); ov.hidden=false;
-    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45%)"); num.textContent=(n===null?"":n); num.style.transform="translateY(-50%) scale(.12)"; rv.style.opacity="1";
+    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45.2%)"); num.textContent=(n===null?"":n); num.style.transform="translateY(-50%) scale(.05)"; rv.style.opacity="1";
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
-    const bulk=(n===null); const SPIN=bulk?2.1:(fast?.8:2.3), EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
+    const bulk=(n===null); const SPIN=bulk?2.1:(fast?.8:2.3), EMERGE=fast?.15:.25, GROW=fast?.2:.40, HOLD=fast?.5:.77, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
@@ -457,12 +456,16 @@ function runDraw(n, fast, onReveal){
         angle+=spin*dt; step(dt); drawWheel(null);
         if(t>=SPIN){ phase=bulk?"closing":"emerge"; t0=now; }
       } else if(phase==="emerge"){
-        angle+=spin*dt; step(dt); drawWheel(null);
-        if(!bits.length){ initConfetti(); onReveal&&onReveal(); }
-        const k=Math.min(1,t/EMERGE), e=Math.pow(k,1.7), sc=Math.min(1,2.6*(5+e*66)/100); revealE=sc; revealR=(5+e*66)/100; clip(`circle(${(5+e*66).toFixed(2)}% at 49.9% 45%)`);
+        // 実機：結果が出始めた瞬間に玉の並びが1回変わって、そのあとガラポンは止まる
+        if(!bits.length){ initBalls(); shake=0; drawWheel(null); initConfetti(); onReveal&&onReveal(); }
+        const k=Math.min(1,t/EMERGE), rr=7+68*Math.pow(k,1.9), u=Math.min(1,t/GROW),
+              sc=.05+.95*(u<.5?1.28*u:1-.36*Math.pow((1-u)/.5,2));
+        // 実機を1コマずつ測った値：白い丸は0.25秒で広がり、中の数字と紙吹雪は0.4秒かけて大きくなる
+        revealE=sc; revealR=k>=1?9:rr/100; clip(`circle(${rr.toFixed(2)}% at 49.9% 45.2%)`);
         num.style.transform=`translateY(-50%) scale(${sc.toFixed(3)})`; rv.style.opacity="1";
         drawConfetti(0, 1, true);
-        if(t>=EMERGE){ phase="result"; t0=now; clip("none"); num.style.transform=""; rv.style.opacity=""; ctx.clearRect(0,0,W,W); sendState(); }
+        if(k>=1) clip("none");
+        if(t>=GROW){ phase="result"; t0=now; clip("none"); num.style.transform=""; rv.style.opacity=""; ctx.clearRect(0,0,W,W); sendState(); }
       } else if(phase==="result"){
         const a = t<HOLD?1:Math.max(0,1-(t-HOLD)/FADE);
         drawConfetti(t,a);
@@ -618,7 +621,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261117-2330";
+const APP_VER="20261117-2350";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
