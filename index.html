@@ -437,20 +437,24 @@ function drawConfetti(t, alpha, revealing){
   fx.restore(); fx.globalAlpha=1;
 }
 
+// CSSの「ease」と同じカーブ
+function cssEase(x){ let lo=0,hi=1,t=x; for(let i=0;i<20;i++){ t=(lo+hi)/2; const bx=3*.25*t*(1-t)*(1-t)+3*.25*t*t*(1-t)+t*t*t; if(bx<x) lo=t; else hi=t; } return 3*.1*t*(1-t)*(1-t)+3*1*t*t*(1-t)+t*t*t; }
 /* ---------- sequence: spin → ball comes out → number + confetti → closes by itself ---------- */
 let raf=0, phase="", closeResolve=null;
 function runDraw(n, fast, onReveal){
   return new Promise(res=>{
     const ov=$("ov"), st=$("stage"), num=$("num"), rv=$("rv");
     const clip=v=>{ rv.style.clipPath=v; rv.style.webkitClipPath=v; };
-    ov.classList.remove("out"); ov.classList.add("pre"); ov.hidden=false;
-    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45.2%)"); num.textContent=(n===null?"":n); num.style.transform="translateY(-50%) scale(.05)"; rv.style.opacity="1";
+    ov.classList.remove("out","pre"); ov.style.transition="none"; ov.style.opacity="0"; ov.hidden=false; window.paintBand&&paintBand();
+    // 幕のふわっと出る動き（0.15秒）はJSで動かし、一番下の色も同じコマで塗る
+    const tIn=performance.now(); clip("circle(0% at 49.9% 45.2%)"); num.textContent=(n===null?"":n); num.style.transform="translateY(-50%) scale(.05)"; rv.style.opacity="1";
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
     const bulk=(n===null); const SPIN=bulk?2.1:(fast?.8:2.3), EMERGE=fast?.15:.25, GROW=fast?.2:.40, HOLD=fast?.5:.77, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
       const dt=Math.min(.033,(now-last)/1000); last=now; const t=(now-t0)/1000;
+      if(phase!=="closing"){ const fi=Math.min(1,(now-tIn)/150); const o=fi>=1?1:cssEase(fi); if(ov.style.opacity!==(fi>=1?"":String(o))){ ov.style.opacity=fi>=1?"":String(o); if(fi>=1) ov.style.transition=""; window.paintBand&&paintBand(); } }
       if(phase==="spin"){
         spin=1.57;
         angle+=spin*dt; step(dt); drawWheel(null);
@@ -472,7 +476,7 @@ function runDraw(n, fast, onReveal){
         if(t>=HOLD+FADE+PLAIN){ phase="closing"; t0=now; }
       } else if(phase==="closing"){
         if(!ov.classList.contains("closing")){ ov.dataset.out=(bulk?.25:OUT); ov.classList.add("closing"); }
-        ov.style.transition="none"; const o=Math.max(0,1-t/(bulk?.25:OUT)); ov.style.opacity=o.toFixed(3);
+        ov.style.transition="none"; const o=Math.max(0,1-t/(bulk?.25:OUT)); ov.style.opacity=o.toFixed(3); window.paintBand&&paintBand();
         if(o<=0){ finish(); return; }
       }
       raf=requestAnimationFrame(loop);
@@ -622,7 +626,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0130";
+const APP_VER="20261118-0140";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
@@ -644,7 +648,8 @@ document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
 (function(){
   const root=document.documentElement, body=document.body, SEL=".ov,.sheet,.cfm,.fsheet,.sdlg,.sec";
   let run=false, idle=0, last="";
-  function tick(){
+  function tick(){ const any=paintNow(); if(!any){ if(++idle>10){ run=false; return; } } else idle=0; requestAnimationFrame(tick); }
+  function paintNow(){
     const els=[...document.querySelectorAll(SEL)].filter(el=>!el.hidden).map(el=>{ const cs=getComputedStyle(el); return {cs,z:parseInt(cs.zIndex)||0}; })
       .filter(o=>o.cs.display!=="none").sort((a,b)=>a.z-b.z);
     let r=255,g=255,b=255, any=false;
@@ -652,10 +657,10 @@ document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
       const a=(p.length>3?p[3]:1)*(+cs.opacity); if(a<=0) continue; any=true; r=p[0]*a+r*(1-a); g=p[1]*a+g*(1-a); b=p[2]*a+b*(1-a); }
     const col=`rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
     if(col!==last){ last=col; root.style.backgroundColor=col; body.style.backgroundColor=col; }
-    if(!any){ if(++idle>10){ run=false; return; } } else idle=0;
-    requestAnimationFrame(tick);
+    return any;
   }
   function kick(){ if(!run){ run=true; idle=0; requestAnimationFrame(tick); } }
+  window.paintBand=function(){ paintNow(); kick(); };
   new MutationObserver(kick).observe(body,{subtree:true,attributes:true,attributeFilter:["hidden","class","style"],childList:true});
   kick();
 })();
