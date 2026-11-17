@@ -160,6 +160,26 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 /* 抽選パネルや確認画面は、本物と同じく「画面全体」の高さを基準に置く */
 .vpshort .stage,.vpshort .cfm .box{top:calc((100% + var(--miss,0px)) * .514)!important}
 .vpshort .sdlg .box{top:calc((100% + var(--miss,0px)) * .51)!important}
+/* ---- 隠し設定（タイトル5回タップ）: 通信なしで「何回目に何番」を決めておく ---- */
+.sec{position:fixed;inset:0;z-index:60;background:#16161a;color:#f2f2f5;overflow-y:auto;font-family:-apple-system,"Hiragino Sans",sans-serif;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 40px}
+.sec h2{margin:0 0 4px;font-size:18px}
+.sec .note{font-size:12px;color:#8b8b96;margin:0 0 14px;line-height:1.5}
+.sec .box{background:#222228;border-radius:14px;padding:12px;margin-bottom:12px}
+.sec .lbl{font-size:12px;color:#8b8b96;margin-bottom:8px}
+.sec .in{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sec input{width:84px;font:700 20px -apple-system,sans-serif;padding:8px 10px;border-radius:10px;border:1px solid #333;background:#2c2c34;color:#fff;text-align:center}
+.sec .add{height:44px;padding:0 16px;border:0;border-radius:10px;background:#ff345b;color:#fff;font:700 15px -apple-system,sans-serif}
+.sec .add.ban{background:#b8892a}
+.sec .warn{color:#ff8a9b;font-size:12px;min-height:16px;margin-top:6px}
+.sec .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sec .chip{border:1px solid #5a3440;background:#3a2a30;color:#ffd7de;border-radius:999px;padding:6px 12px;font:700 14px -apple-system,sans-serif}
+.sec .chip.b{background:#3a3220;color:#ffe2a8;border-color:#5c4c25}
+.sec .chip.done{opacity:.4;text-decoration:line-through}
+.sec .none{color:#8b8b96;font-size:13px}
+.sec .row2{display:flex;gap:8px;margin-top:6px}
+.sec .row2 button{flex:1;height:46px;border-radius:12px;border:1px solid #333;background:#2c2c34;color:#fff;font:700 15px -apple-system,sans-serif}
+.sec .close{background:#ff345b!important;border-color:#ff345b!important}
+.sec .dbg{font:11px/1.5 monospace;color:#5c5c66;white-space:pre-wrap;margin-top:14px}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
@@ -196,6 +216,26 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
     <div class="tap" id="tap" hidden></div>
   </div>
   <canvas id="cf"></canvas>
+</div>
+
+<div class="sec" id="sec" hidden>
+  <h2>出す番号の設定</h2>
+  <p class="note">通信なし（機内モード）でも使えます。ここで決めた番号は、決めた回にだけ出て、それ以外の回にはランダムで出ません。</p>
+  <div class="box">
+    <div class="lbl">何回目に何番を出すか</div>
+    <div class="in"><input id="scK" type="number" inputmode="numeric" placeholder="回目">回目に<input id="scN" type="number" inputmode="numeric" placeholder="番号">番<button class="add" id="scAdd">決める</button></div>
+    <div class="warn" id="scW"></div>
+    <div class="chips" id="scList"></div>
+  </div>
+  <div class="box">
+    <div class="lbl">出さない番号</div>
+    <div class="in"><input id="bnN" type="number" inputmode="numeric" placeholder="番号"><button class="add ban" id="bnAdd">除外</button></div>
+    <div class="warn" id="bnW"></div>
+    <div class="chips" id="bnList"></div>
+  </div>
+  <p class="note">チップをタップすると消せます。今は <b id="scNow">0</b> 回目まで出ています（次は <b id="scNext">1</b> 回目）。</p>
+  <div class="row2"><button id="scClear">回の設定を全部消す</button><button class="close" id="scClose">閉じる</button></div>
+  <div class="dbg" id="scDbg"></div>
 </div>
 
 <div class="cfm" id="cfm" hidden>
@@ -259,9 +299,9 @@ try { Object.assign(S, JSON.parse(localStorage.getItem("garapon-settings")||"{}"
 let drawn = [];
 try{ const dv=JSON.parse(localStorage.getItem("garapon-drawn")||"[]"); if(Array.isArray(dv)) drawn=dv.map(Number).filter(n=>isFinite(n)); }catch(e){}
 let busy = false;
-let queue = [], banned = [], qrev = 0, brev = 0;
-try{ const sv=JSON.parse(localStorage.getItem("garapon-secret")||"{}"); queue=sv.queue||[]; banned=sv.banned||[]; qrev=sv.qrev||0; brev=sv.brev||0; }catch(e){}
-function saveSecret(){ try{ localStorage.setItem("garapon-secret",JSON.stringify({queue,banned,qrev,brev})); }catch(e){} }
+let queue = [], banned = [], qrev = 0, brev = 0, sched = {};
+try{ const sv=JSON.parse(localStorage.getItem("garapon-secret")||"{}"); queue=sv.queue||[]; banned=sv.banned||[]; qrev=sv.qrev||0; brev=sv.brev||0; sched=sv.sched||{}; }catch(e){}
+function saveSecret(){ try{ localStorage.setItem("garapon-secret",JSON.stringify({queue,banned,qrev,brev,sched})); }catch(e){} }
 
 /* ---------- 操作側との連携（ntfy.sh 経由） ---------- */
 const me=Math.random().toString(36).slice(2,9);
@@ -304,7 +344,9 @@ function onRemote(m){
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) connect(); });
 
 
-function pool(){ const a=[]; for(let n=S.min;n<=S.max;n++) if(!drawn.includes(n) && !banned.includes(n)) a.push(n); return a; }
+function schedFor(k){ const n=sched[k]; return (n!=null && !drawn.includes(n) && n>=S.min && n<=S.max) ? n : null; }
+function laterSched(){ const out=[]; for(const k in sched){ if(+k>drawn.length) out.push(sched[k]); } return out; }
+function pool(){ const later=laterSched(); const a=[]; for(let n=S.min;n<=S.max;n++) if(!drawn.includes(n) && !banned.includes(n) && !later.includes(n)) a.push(n); return a; }
 function render(){
   try{ localStorage.setItem("garapon-drawn",JSON.stringify(drawn)); }catch(e){}
   $("title").textContent = S.title;
@@ -439,8 +481,11 @@ $("ov").addEventListener("click",()=>closeResolve&&closeResolve());
 
 function nextQueued(extra){ while(queue.length){ const n=queue.shift(); qrev++; if(!drawn.includes(n) && !(extra||[]).includes(n) && n>=S.min && n<=S.max) return n; } return null; }
 async function drawOne(fast){
-  const p=pool(); if((!p.length && !queue.length)||drawn.length>=S.slots) return false;
-  let n = nextQueued(); if(n===null){ if(!p.length) return false; n=p[Math.floor(Math.random()*p.length)]; }
+  if(drawn.length>=S.slots) return false;
+  const p=pool();
+  let n = schedFor(drawn.length+1);
+  if(n===null) n = nextQueued(laterSched());
+  if(n===null){ if(!p.length) return false; n=p[Math.floor(Math.random()*p.length)]; }
   await runDraw(n, fast, ()=>{ drawn.push(n); render(); markHit(drawn.length-1); });
   sendState(); return true;
 }
@@ -450,7 +495,9 @@ async function doBulk(){
   if(busy) return; const left=Math.max(0,S.slots-drawn.length); if(!left) return;
   busy=true; const picks=[];
   for(let k=0;k<left;k++){ let n=null;
-    n=nextQueued(picks);
+    const slot=drawn.length+k+1;
+    n=sched[slot]; if(n==null || drawn.includes(n) || picks.includes(n) || n<S.min || n>S.max) n=null;
+    if(n===null) n=nextQueued(picks.concat(laterSched()));
     if(n===null) { const p=pool().filter(x=>!picks.includes(x)); if(!p.length) break; n=p[Math.floor(Math.random()*p.length)]; }
     picks.push(n); }
   if(picks.length){ await runDraw(null,false); drawn.push(...picks); render(); sendState(); }
@@ -528,8 +575,49 @@ $("inAd").addEventListener("change",()=>{ S.ad=$("inAd").value; try{ localStorag
 applyAd();
 render();
 connect();
+/* ---------- 隠し設定（タイトルを5回すばやくタップ） ---------- */
+(function(){
+  let taps=0,last=0;
+  $("title").addEventListener("click",()=>{ const now=Date.now(); if(now-last>1500) taps=0; last=now; if(++taps>=5){ taps=0; openSec(); } });
+  function openSec(){ $("scW").textContent=""; $("bnW").textContent=""; $("scK").value=drawn.length+1; $("scN").value=""; $("bnN").value=""; drawSec(); $("sec").hidden=false; }
+  function drawSec(){
+    $("scNow").textContent=drawn.length; $("scNext").textContent=drawn.length+1;
+    const L=$("scList"); L.innerHTML="";
+    const ks=Object.keys(sched).map(Number).sort((a,b)=>a-b);
+    if(!ks.length) L.innerHTML='<span class="none">まだありません</span>';
+    ks.forEach(k=>{ const b=document.createElement("button"); b.className="chip"+(k<=drawn.length?" done":""); b.textContent=k+"回目 → "+sched[k]; b.onclick=()=>{ delete sched[k]; saveSecret(); drawSec(); }; L.appendChild(b); });
+    const B=$("bnList"); B.innerHTML="";
+    if(!banned.length) B.innerHTML='<span class="none">まだありません</span>';
+    banned.slice().sort((a,b)=>a-b).forEach(n=>{ const b=document.createElement("button"); b.className="chip b"; b.textContent=n; b.onclick=()=>{ banned=banned.filter(x=>x!==n); brev++; sendState(); drawSec(); render(); }; B.appendChild(b); });
+    let sh=false; try{ sh=document.documentElement.classList.contains("vpshort"); }catch(e){}
+    $("scDbg").textContent="screen "+screen.width+"x"+screen.height+" / inner "+innerWidth+"x"+innerHeight+" / short "+sh+" / ver "+APP_VER;
+  }
+  $("scAdd").onclick=()=>{
+    const k=parseInt($("scK").value,10), n=parseInt($("scN").value,10), W=$("scW");
+    if(!(k>=1)) return W.textContent="何回目かを入れてください";
+    if(!isFinite(n)) return W.textContent="番号を入れてください";
+    if(k<=drawn.length) return W.textContent=k+"回目はもう出ています（次は"+(drawn.length+1)+"回目）";
+    if(k>S.slots) return W.textContent="マスは"+S.slots+"個までです";
+    if(n<S.min||n>S.max) return W.textContent="範囲外の番号です（"+S.min+"〜"+S.max+"）";
+    if(drawn.includes(n)) return W.textContent=n+"番はもう出ています";
+    if(banned.includes(n)) return W.textContent=n+"番は出さない番号に入っています";
+    for(const kk in sched){ if(sched[kk]===n && +kk!==k) return W.textContent=n+"番はもう"+kk+"回目に決めています"; }
+    sched[k]=n; saveSecret(); W.textContent=""; $("scK").value=k+1; $("scN").value=""; drawSec();
+  };
+  $("bnAdd").onclick=()=>{
+    const n=parseInt($("bnN").value,10), W=$("bnW");
+    if(!isFinite(n)) return W.textContent="番号を入れてください";
+    if(n<S.min||n>S.max) return W.textContent="範囲外の番号です（"+S.min+"〜"+S.max+"）";
+    if(banned.includes(n)) return W.textContent="もう入っています";
+    for(const kk in sched){ if(sched[kk]===n) return W.textContent=n+"番は"+kk+"回目に出すと決めています"; }
+    banned.push(n); brev++; sendState(); W.textContent=""; $("bnN").value=""; drawSec(); render();
+  };
+  $("scClear").onclick=()=>{ sched={}; saveSecret(); drawSec(); };
+  $("scClose").onclick=()=>{ $("sec").hidden=true; };
+})();
+
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261117-0230";
+const APP_VER="20261117-1500";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
@@ -540,16 +628,6 @@ document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpd
 setTimeout(checkUpdate,1500);
 
 })();
-</script>
-<script>
-/* 調整用: タイトルを5回すばやくタップすると画面サイズの情報を出す */
-(function(){var n=0,t=0;document.addEventListener("click",function(e){if(!e.target.closest||!e.target.closest("#title"))return;var now=Date.now();if(now-t>1500)n=0;t=now;n++;if(n<5)return;n=0;
-var d=document.getElementById("dbg");if(d){d.remove();return;}
-var pr=document.createElement("div");pr.style.cssText="position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:env(safe-area-inset-bottom,0px);pointer-events:none";document.body.appendChild(pr);var sa=pr.getBoundingClientRect();pr.remove();
-var a=document.querySelector(".app").getBoundingClientRect(),vv=window.visualViewport;
-d=document.createElement("div");d.id="dbg";d.style.cssText="position:fixed;left:8px;right:8px;top:40%;z-index:99;background:#000;color:#0f0;font:13px/1.5 monospace;padding:10px;border-radius:8px;white-space:pre";
-d.textContent="screen "+screen.width+"x"+screen.height+"\ninner "+innerWidth+"x"+innerHeight+"\nvv "+(vv?Math.round(vv.width)+"x"+Math.round(vv.height)+" top"+Math.round(vv.offsetTop):"-")+"\nsafeTop "+Math.round(sa.top)+" safeBot "+Math.round(innerHeight-sa.bottom)+"\napp "+Math.round(a.top)+"-"+Math.round(a.bottom)+"\nstandalone "+(navigator.standalone)+" short "+document.documentElement.classList.contains("vpshort")+"\nver "+(typeof APP_VER!=="undefined"?APP_VER:"?");
-d.onclick=function(){d.remove()};d.style.pointerEvents="auto";document.body.appendChild(d);},true);})();
 </script>
 </body>
 </html>
