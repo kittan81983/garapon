@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>テスト</title>
+<meta name="apple-mobile-web-app-title" content="抽選">
+<link rel="apple-touch-icon" href="icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:0}*,*::before,*::after{box-sizing:border-box}</style>
+<meta name="theme-color" content="#ff345b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+/* Layout: one-screen phone app — pink header with pill buttons, white sheet with slot grid, three round buttons at the bottom */
+:root{
+  --pink:#ff345b; --pill:#9a3045; --white:#ffffff; --cell:#f1f1f1; --hit:#fbe7ec;
+  --gray:#818183; --idx:#7c7c7e; --ink:#000000; --bulk:#fcd1db; --bulk-ink:#eb4168; --reset-ink:#393c43;
+  --card:#ffffff; --panel:#fc3458; --num:#ff3e68; --rim:#ffffff;
+  --font:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box;background:linear-gradient(var(--pink) 0 50%,var(--white) 50% 100%) fixed}
+body{height:100%;margin:0}
+body{background:var(--white);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--pink)}
+.app{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:0;display:flex;flex-direction:column;max-width:520px;margin:0 auto;background:var(--pink)}
+header{display:flex;align-items:center;justify-content:space-between;padding-block:3px 13px;padding-left:max(21px,env(safe-area-inset-left,0px));padding-right:max(21px,env(safe-area-inset-right,0px))}
+header h1{flex:1;text-align:center;font-size:15px;font-weight:800;margin:0;color:#fff;letter-spacing:.02em}
+.pill{display:flex;background:var(--pill);border-radius:19px;height:37px}
+.ib{width:51px;height:37px;border:0;background:transparent;color:#fff;display:grid;place-items:center;box-sizing:border-box;border-radius:21px;cursor:pointer;padding:0}
+.pill.r .ib{width:55.5px}
+.ib:focus-visible{outline:2px solid #fff;outline-offset:-3px}
+.ib svg{flex:none}
+.sheet-w{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--white);border-radius:12px 12px 0 0}
+main{flex:1;overflow-y:auto;padding-block:16.7px;padding-left:max(16.7px,env(safe-area-inset-left,0px));padding-right:max(16.7px,env(safe-area-inset-right,0px))}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11.7px 9.3px}
+.cell{position:relative;height:78.3px;max-width:100%;background:var(--cell);border-radius:10px;display:grid;place-items:center;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",var(--font);font-weight:900;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.cell small{position:absolute;top:4px;left:4px;font-family:var(--font);font-size:11px;font-weight:400;color:var(--idx)}
+.cell span{margin-top:6px}
+.cell .q{color:#7d7d7d;font-weight:800;font-size:22px}
+.cell.filled{background:var(--hit)}
+.cell.hit{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+.bar{display:flex;align-items:center;justify-content:space-between;height:156px;box-sizing:border-box;flex:none;padding-block:0;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--white)}
+.sub{width:calc((100vw - 74px - min(31.8vw,140px))/2);height:calc((100vw - 74px - min(31.8vw,140px))/2);border-radius:50%;border:0;font:800 12px var(--font);cursor:pointer;padding:0}
+.bulk{background:var(--bulk);color:var(--bulk-ink)}
+.reset{background:var(--cell);color:var(--reset-ink)}
+.draw{width:min(31.8vw,140px);height:min(31.8vw,140px);border-radius:50%;border:0;background:var(--pink);color:#fff;font:800 19px var(--font);cursor:pointer;padding:0;transition:transform .08s,filter .08s}
+.sub:active,.draw:active{transform:scale(.95);filter:brightness(.95)}
+.draw:disabled{opacity:.5}
+button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
+
+/* overlay */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .15s}
+
+.ov.pre{opacity:0}
+.stage{position:absolute;left:50%;top:51.4%;transform:translate(-50%,-50%);width:min(92.7vw,480px);aspect-ratio:1;max-width:100%;border-radius:17px;overflow:hidden;background:var(--panel)}
+.rv{position:absolute;inset:-1px;background:var(--card);clip-path:circle(0% at 50% 50%);-webkit-clip-path:circle(0% at 50% 50%)}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.num{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);transform-origin:50% 50%;text-align:center;font-family:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Hiragino Maru Gothic ProN",var(--font);font-weight:900;color:var(--num);font-size:min(34.2vw,177px);line-height:1;letter-spacing:0;font-variant-numeric:tabular-nums;pointer-events:none}
+#cf{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:21}
+.tap{display:none}
+/* settings sheet */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;display:grid;align-items:end;justify-items:center}
+.panel{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+.panel h2{margin:0;font-size:16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+.row input{width:110px;font:700 16px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink);text-align:right}
+.ok{background:var(--pink);color:#fff;border:0;border-radius:10px;padding:12px;font:700 15px var(--font);cursor:pointer}
+/* bottom ad banner (fictional ads / offline notice) */
+.adwrap{background:var(--white);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 3px))}
+.adwrap.none{padding-bottom:env(safe-area-inset-bottom,0px)}
+.adwrap.none .ad{display:none}
+.ad{position:relative;height:49px;background:#fff;border-top:1px solid #ececec;border-bottom:1px solid #ececec;overflow:hidden;font-family:-apple-system,"Hiragino Sans",sans-serif}
+.ad .slide{position:absolute;inset:0;display:flex;align-items:center;gap:9px;padding:0 30px 0 8px;background:#fff}
+.ad .bk{position:absolute;inset:0;display:flex;align-items:center;padding:1px 7px 0 16px}
+.ad .bki{position:absolute;left:1px;top:19px;width:10px;height:10px;border:1.4px solid #3aa3d2;border-radius:50%;color:#3aa3d2;font:700 8px/10px Georgia,serif;text-align:center}
+.ad .bkd{position:absolute;left:5px;top:33px;width:2.5px;height:2.5px;border-radius:50%;background:#3aa3d2;box-shadow:0 3.5px 0 #3aa3d2,0 7px 0 #3aa3d2}
+.ad .bkt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.18;color:#1d1d1f}
+.ad .bkt small{font-size:8.3px;color:#555;margin-bottom:1px}
+.ad .bkt b{font-weight:500;font-size:11.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad .bkb{flex:none;width:74px;height:22px;border-radius:11px;background:#1c428c;color:#fff;display:flex;align-items:center;justify-content:center;gap:7px;font:600 10px -apple-system,"Hiragino Sans",sans-serif}
+.ad .bkb span{font-size:13px;font-weight:700;margin-top:-2px}
+.ad .ai{flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;font:800 17px/1 -apple-system,sans-serif;box-shadow:0 0 0 .5px rgba(0,0,0,.12)}
+.ad .ai svg{width:20px;height:20px}
+.ad .at{flex:1;min-width:0;line-height:1.25}
+.ad .at b{display:block;font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad .at span{display:block;font-size:11px;color:#6b6b70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad .ab{flex:none;background:#0a64d8;color:#fff;font:600 13px -apple-system,sans-serif;border-radius:999px;padding:7px 18px}
+.ad .ainfo{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:15px;height:15px;border-radius:50%;border:1.3px solid #2a86e0;color:#2a86e0;font:700 10px/12px Georgia,serif;text-align:center}
+.ad .adots{position:absolute;right:9px;top:3px;color:#2a86e0;font:700 9px/1 sans-serif;letter-spacing:-1px}
+.ad.off .ai{background:#c7c7cc}
+.ad.off .at b{color:#3a3a3c}
+/* reset confirm dialog (measured from the original) */
+.cfm{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.7);display:grid;place-items:center;animation:cfmbg .2s ease-out}
+.cfm .box{position:absolute;left:50%;top:51.4%;transform:translate(-50%,-50%);width:min(72.7vw,330px);height:250px;background:#fff;border-radius:11px;display:flex;flex-direction:column;align-items:stretch;padding:19px 17px 15px;animation:cfmin .2s ease-out}
+.cfm h3{margin:0;text-align:center;color:#ff383c;font:800 17px/1.2 -apple-system,"Hiragino Sans",sans-serif}
+.cfm p{flex:1;margin:0;display:grid;place-items:center;text-align:center;color:#000;font:800 11px/1.43 -apple-system,"Hiragino Sans",sans-serif;letter-spacing:.02em}
+.cfm .bt{display:grid;grid-template-columns:1fr 1fr;gap:18.7px}
+.cfm button{height:40px;border:0;border-radius:9px;font:800 11px -apple-system,"Hiragino Sans",sans-serif;letter-spacing:.05em;cursor:pointer}
+.cfm .cn{background:#f4f4f4;color:#8e8e93}
+.cfm .ok2{background:#ffd8e0;color:#ff3e68}
+@keyframes cfmbg{from{background:rgba(0,0,0,0)}}
+@keyframes cfmin{from{opacity:0;transform:translate(-50%,-50%) scale(1.08)}}
+/* ---- sort menu (↑↓) ---- */
+.smenu{position:fixed;inset:0;z-index:35}
+.smenu .pop{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 1px);width:248px;padding:8px 0;border-radius:22px;background:rgba(70,70,72,.78);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 10px 30px rgba(0,0,0,.25);animation:popin .18s ease-out;transform-origin:85% 0}
+.smenu button{display:flex;align-items:center;width:100%;height:36px;border:0;background:transparent;color:#fff;font:700 14px -apple-system,"Hiragino Sans",sans-serif;padding:0 0 0 57px;position:relative;text-align:left;cursor:pointer}
+.smenu button.on::before{content:"";position:absolute;left:28px;top:50%;width:12px;height:7px;border-left:3px solid #fff;border-bottom:3px solid #fff;transform:translateY(-70%) rotate(-45deg)}
+@keyframes popin{from{opacity:0;transform:scale(.85)}}
+/* ---- full-height sheets (audio) ---- */
+.fsheet{position:fixed;inset:0;z-index:36;background:rgba(0,0,0,.35);animation:fadein .2s}
+.fsheet .pg{position:absolute;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 10px);background:#f3f3f3;border-radius:36px 36px 0 0;overflow:hidden;animation:slideup .3s cubic-bezier(.2,.8,.2,1)}
+.fsheet .hd{height:74px;background:var(--pink);display:flex;align-items:center;justify-content:space-between;padding:0 20px;color:#fff}
+.fsheet .hd h2{margin:0;font:800 16px -apple-system,"Hiragino Sans",sans-serif}
+.cbtn{width:43px;height:43px;border-radius:50%;border:0;background:var(--pill);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+.cbtn svg{width:18px;height:18px}
+.seg2{margin:16px auto 0;width:299px;height:31px;border-radius:16px;background:#e2e2e2;display:grid;grid-template-columns:1fr 1fr;padding:2px;box-sizing:border-box}
+.seg2 button{border:0;border-radius:14px;background:transparent;font:800 13px -apple-system,"Hiragino Sans",sans-serif;color:#000;cursor:pointer}
+.seg2 button.on{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.opt{margin:58px 20px 0;height:69px;border-radius:24px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 18px;font:800 14px -apple-system,"Hiragino Sans",sans-serif;color:#3d4350}
+.opt .ck{width:14px;height:8px;border-left:3.5px solid #ff345b;border-bottom:3.5px solid #ff345b;transform:rotate(-50deg) translate(2px,-3px);border-radius:1px}
+@keyframes slideup{from{transform:translateY(100%)}}
+@keyframes fadein{from{opacity:0}}
+/* ---- settings dialog (gear) ---- */
+.sdlg{position:fixed;inset:0;z-index:37;background:rgba(0,0,0,.7);animation:fadein .2s}
+.sdlg .box{position:absolute;left:50%;top:51%;transform:translate(-50%,-50%);width:min(72.7vw,330px);background:#fff;border-radius:12px;overflow:hidden;animation:cfmin .2s ease-out;font-family:-apple-system,"Hiragino Sans",sans-serif}
+.sdlg h3{margin:0;height:49px;display:grid;place-items:center;font:800 15px -apple-system,"Hiragino Sans",sans-serif;border-bottom:1px solid #ececec}
+.sdlg .r{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-weight:800;font-size:11.5px;color:#111;border-bottom:1px solid #f0f0f0}
+.sdlg .r .v{color:#ff345b}
+.sdlg .lk{height:50px;display:grid;place-items:center;font-weight:800;font-size:11.5px;color:#111;border-bottom:1px solid #f0f0f0;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%}
+.sdlg .lk:last-child{border-bottom:0}
+.sdlg .lk.red{color:#ff383c}
+.tg{width:62px;height:31px;border-radius:16px;background:#e5e5ea;position:relative;border:0;cursor:pointer;transition:background .2s;flex:none}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.tg.on{background:#ff345b}
+.tg.on::after{left:33px}
+/* ---- event list screen (✕) ---- */
+.evl{position:fixed;inset:0;z-index:34;background:#f3f3f3;display:flex;flex-direction:column;animation:fadein .15s}
+.evl .hd{background:var(--pink);padding:calc(env(safe-area-inset-top,0px) + 2px) 18px 14px;display:flex;align-items:center;justify-content:space-between;color:#fff}
+.evl .hd h2{margin:0;font:800 16px -apple-system,"Hiragino Sans",sans-serif}
+.evl .rb{width:40px;height:40px;border-radius:50%;background:#f29bc8;border:1.5px solid rgba(255,255,255,.45);display:grid;place-items:center;color:#fff}
+.evl .rb svg{width:22px;height:22px}
+.evl .chips{display:flex;gap:11px;padding:10px 15px}
+.evl .chip{height:30px;padding:0 13px;border-radius:15px;display:grid;place-items:center;font:800 12.5px -apple-system,"Hiragino Sans",sans-serif;background:#e8e8e8;color:#8e8e93;min-width:61px;box-sizing:border-box}
+.evl .chip.on{background:var(--pink);color:#fff}
+.evl .card{margin:14px 15px 0;background:#fff;border-radius:22px;padding:15px 16px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer}
+.evl .card .t{display:flex;align-items:center;justify-content:space-between;font:800 11.5px -apple-system,"Hiragino Sans",sans-serif}
+.evl .card .k{color:var(--pink);display:flex;align-items:center;gap:9px}
+.evl .card .k i{display:inline-grid;place-items:center;width:15px;height:12px;border:1.6px solid var(--pink);border-radius:3px;font:800 6px/1 -apple-system,sans-serif;font-style:normal}
+.evl .card .c{color:#8e8e93}
+.evl .card b{display:block;margin-top:6px;font:900 21px -apple-system,"Hiragino Sans",sans-serif;color:#000}
+.evl .fab{position:absolute;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 75px);width:44px;height:44px;border-radius:50%;background:var(--pink);border:4px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.12);display:grid;place-items:center;color:#fff}
+.evl .search{position:absolute;left:26px;right:26px;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);height:44px;border-radius:22px;background:#fbfbfb;box-shadow:0 4px 16px rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;padding:0 17px;color:#8e8e93;font:800 13px -apple-system,"Hiragino Sans",sans-serif}
+/* iOS 26 のホーム画面アプリでは画面下（ステータスバーと同じ高さ）が描けない不具合がある。
+   そのときは広告の下の余白をなくして、描ける範囲のいちばん下に広告を置く */
+.vpshort .adwrap{padding-bottom:0!important}
+/* 抽選パネルや確認画面は、本物と同じく「画面全体」の高さを基準に置く */
+.vpshort .stage,.vpshort .cfm .box{top:calc((100% + var(--miss,0px)) * .514)!important}
+.vpshort .sdlg .box{top:calc((100% + var(--miss,0px)) * .51)!important}
+/* ---- 隠し設定（タイトル5回タップ）: 通信なしで「何回目に何番」を決めておく ---- */
+.sec{position:fixed;inset:0;z-index:60;background:#16161a;color:#f2f2f5;overflow-y:auto;font-family:-apple-system,"Hiragino Sans",sans-serif;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 40px}
+.sec h2{margin:0 0 4px;font-size:18px}
+.sec .note{font-size:12px;color:#8b8b96;margin:0 0 14px;line-height:1.5}
+.sec .box{background:#222228;border-radius:14px;padding:12px;margin-bottom:12px}
+.sec .lbl{font-size:12px;color:#8b8b96;margin-bottom:8px}
+.sec .in{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sec input{width:84px;font:700 20px -apple-system,sans-serif;padding:8px 10px;border-radius:10px;border:1px solid #333;background:#2c2c34;color:#fff;text-align:center}
+.sec .add{height:44px;padding:0 16px;border:0;border-radius:10px;background:#ff345b;color:#fff;font:700 15px -apple-system,sans-serif}
+.sec .add.ban{background:#b8892a}
+.sec .warn{color:#ff8a9b;font-size:12px;min-height:16px;margin-top:6px}
+.sec .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sec .chip{border:1px solid #5a3440;background:#3a2a30;color:#ffd7de;border-radius:999px;padding:6px 12px;font:700 14px -apple-system,sans-serif}
+.sec .chip.b{background:#3a3220;color:#ffe2a8;border-color:#5c4c25}
+.sec .chip.done{opacity:.4;text-decoration:line-through}
+.sec .none{color:#8b8b96;font-size:13px}
+.sec .row2{display:flex;gap:8px;margin-top:6px}
+.sec .row2 button{flex:1;height:46px;border-radius:12px;border:1px solid #333;background:#2c2c34;color:#fff;font:700 15px -apple-system,sans-serif}
+.sec .close{background:#ff345b!important;border-color:#ff345b!important}
+.sec .dbg{font:11px/1.5 monospace;color:#5c5c66;white-space:pre-wrap;margin-top:14px}
+@media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
+</style>
+
+<script>(function(){function f(){var r=document.documentElement,sh=false;try{var st=navigator.standalone||matchMedia("(display-mode: standalone)").matches,por=innerHeight>innerWidth;sh=st&&por&&(screen.height-innerHeight)>20;}catch(e){}r.classList.toggle("vpshort",sh);r.style.setProperty("--miss",(sh?screen.height-innerHeight:0)+"px");}f();addEventListener("resize",f);addEventListener("orientationchange",function(){setTimeout(f,300)});})();</script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="pill">
+      <button class="ib" id="btnClose" aria-label="閉じる" style="width:43px"><svg style="width:18px;height:18px" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M2 2l14 14M16 2L2 16"/></svg></button>
+      <button class="ib" id="btnShuffle" aria-label="並び替え" style="width:59.3px;padding-left:10px"><svg style="width:22px;height:22px" viewBox="0 0 22 22" fill="currentColor"><rect x="0" y="4" width="11" height="2.4" rx="1.2"/><rect x="0" y="8.8" width="11" height="2.4" rx="1.2"/><rect x="0" y="13.6" width="7.5" height="2.4" rx="1.2"/><path d="M15.2 1.2h2.6v15.3a3.9 3.9 0 1 1-2.6-3.7z"/><path d="M17.8 1.2c1 1.4 2.4 1.9 3.6 1.7v2.7c-1.4.2-2.6-.2-3.6-.9z"/></svg></button>
+    </div>
+    <h1 id="title">11/5オリパ</h1>
+    <div class="pill r">
+      <button class="ib" id="btnSort" aria-label="順番" style="width:52px"><svg style="width:26px;height:21px" viewBox="0 0 26 21" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 19.4V1.8M1.8 7.5l5.7-5.7 5.7 5.7M18.5 1.6v17.6M12.8 13.5l5.7 5.7 5.7-5.7"/></svg></button>
+      <button class="ib" id="btnSettings" aria-label="設定" style="width:59px;padding-left:10px"><svg style="width:29px;height:29px" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.1 0.6h3.8l.6 3c.8.3 1.5.7 2.2 1.3l2.9-1 1.9 3.3-2.3 2c.1.9.1 1.7 0 2.6l2.3 2-1.9 3.3-2.9-1c-.7.5-1.4 1-2.2 1.3l-.6 3h-3.8l-.6-3c-.8-.3-1.5-.7-2.2-1.3l-2.9 1-1.9-3.3 2.3-2c-.1-.9-.1-1.7 0-2.6l-2.3-2 1.9-3.3 2.9 1c.7-.5 1.4-1 2.2-1.3zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg></button>
+    </div>
+  </header>
+  <div class="sheet-w">
+    <main><div class="grid" id="grid"></div></main>
+    <div class="bar">
+      <button class="sub bulk" id="btnBulk">一括抽選</button>
+      <button class="draw" id="btnDraw">抽選</button>
+      <button class="sub reset" id="btnReset">リセット</button>
+    </div>
+    <div class="adwrap" id="adwrap" aria-hidden="true"><div class="ad" id="ad"></div></div>
+  </div>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="rv" id="rv"><div class="num" id="num"></div></div>
+    <div class="tap" id="tap" hidden></div>
+  </div>
+  <canvas id="cf"></canvas>
+</div>
+
+<div class="sec" id="sec" hidden>
+  <h2>出す番号の設定</h2>
+  <p class="note">通信なし（機内モード）でも使えます。ここで決めた番号は、決めた回にだけ出て、それ以外の回にはランダムで出ません。</p>
+  <div class="box">
+    <div class="lbl">何回目に何番を出すか</div>
+    <div class="in"><input id="scK" type="number" inputmode="numeric" placeholder="回目">回目に<input id="scN" type="number" inputmode="numeric" placeholder="番号">番<button class="add" id="scAdd">決める</button></div>
+    <div class="warn" id="scW"></div>
+    <div class="chips" id="scList"></div>
+  </div>
+  <div class="box">
+    <div class="lbl">出さない番号</div>
+    <div class="in"><input id="bnN" type="number" inputmode="numeric" placeholder="番号"><button class="add ban" id="bnAdd">除外</button></div>
+    <div class="warn" id="bnW"></div>
+    <div class="chips" id="bnList"></div>
+  </div>
+  <p class="note">チップをタップすると消せます。今は <b id="scNow">0</b> 回目まで出ています（次は <b id="scNext">1</b> 回目）。</p>
+  <div class="row2"><button id="scClear">回の設定を全部消す</button><button class="close" id="scClose">閉じる</button></div>
+  <div class="dbg" id="scDbg"></div>
+</div>
+
+<div class="cfm" id="cfm" hidden>
+  <div class="box" role="dialog" aria-labelledby="cfmT">
+    <h3 id="cfmT">注意</h3>
+    <p id="cfmM">抽選結果をリセットしますか？<br>この操作は取り消すことができません</p>
+    <div class="bt"><button class="cn" id="cfmNo">キャンセル</button><button class="ok2" id="cfmYes">リセット</button></div>
+  </div>
+</div>
+
+<div class="smenu" id="smenu" hidden><div class="pop">
+  <button data-o="draw" class="on">抽選順</button><button data-o="asc">小さい順</button><button data-o="desc">大きい順</button>
+</div></div>
+
+<div class="fsheet" id="audio" hidden><div class="pg">
+  <div class="hd"><button class="cbtn" id="audClose" aria-label="閉じる"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M2 2l14 14M16 2L2 16"/></svg></button><h2>オーディオ管理</h2><button class="cbtn" aria-label="読み込み"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px"><path d="M10 1.5v9M6.3 7l3.7 3.7L13.7 7"/><path d="M4.5 9.5h-1a1.5 1.5 0 0 0-1.5 1.5v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1.5 1.5 0 0 0-1.5-1.5h-1" /></svg></button></div>
+  <div class="seg2" id="audSeg"><button class="on" data-t="se">効果音</button><button data-t="bgm">BGM</button></div>
+  <div class="opt" id="audOpt"><span id="audName">デフォルト</span><span class="ck"></span></div>
+</div></div>
+
+<div class="sdlg" id="sdlg" hidden><div class="box" role="dialog">
+  <h3>設定</h3>
+  <div class="r"><span>アニメーション時間</span><span class="v">2 秒</span></div>
+  <div class="r"><span>1行あたりの項目数</span><span class="v">四つ</span></div>
+  <div class="r"><span>効果音</span><button class="tg on" data-k="se" aria-label="効果音"></button></div>
+  <div class="r"><span>BGM</span><button class="tg on" data-k="bgm" aria-label="BGM"></button></div>
+  <div class="r"><span>一括抽選前にメッセージを通知する</span><button class="tg on" data-k="askBulk" aria-label="一括抽選前に通知"></button></div>
+  <div class="r"><span>結果リセット前にメッセージを通知する</span><button class="tg on" data-k="askReset" aria-label="リセット前に通知"></button></div>
+  <button class="lk" id="lkEvent">抽選イベント設定</button>
+  <button class="lk" id="lkPdf">抽選結果をエクスポート（PDF）</button>
+  <button class="lk red" id="lkDel">抽選イベントを削除</button>
+  <button class="lk" id="lkBack">抽選ページに戻る</button>
+</div></div>
+
+<div class="evl" id="evl" hidden>
+  <div class="hd"><span class="rb"><svg viewBox="0 0 22 22" fill="currentColor"><path fill-rule="evenodd" d="M4 3h14a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm0 2.2a.8.8 0 0 0-.8.8v10c0 .44.36.8.8.8h4V5.2zm6.2 0v11.6H18a.8.8 0 0 0 .8-.8V6a.8.8 0 0 0-.8-.8z"/><rect x="4.2" y="7" width="2.8" height="1.6" rx=".8"/><rect x="4.2" y="10" width="2.8" height="1.6" rx=".8"/></svg></span><h2>抽選イベントリスト</h2><span class="rb"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="9"/><circle cx="7" cy="11" r=".9" fill="currentColor"/><circle cx="11" cy="11" r=".9" fill="currentColor"/><circle cx="15" cy="11" r=".9" fill="currentColor"/></svg></span></div>
+  <div class="chips"><span class="chip on">すべて</span><span class="chip">未分類</span></div>
+  <div class="card" id="evCard"><div class="t"><span class="k"><i>123</i>数字の範囲</span><span class="c" id="evCount">抽選済み 0/150</span></div><b id="evTitle">抽選イベント</b></div>
+  <div class="fab"><svg viewBox="0 0 20 20" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M10 2v16M2 10h16"/></svg></div>
+  <div class="search"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="6.2"/><path d="M13.2 13.2l5 5"/></svg>検索</div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="panel">
+    <h2>設定</h2>
+    <div class="row"><label for="inTitle">タイトル</label><input id="inTitle" type="text" style="width:160px;text-align:left"></div>
+    <div class="row"><label for="inMin">最小の番号</label><input id="inMin" type="number" inputmode="numeric"></div>
+    <div class="row"><label for="inMax">最大の番号</label><input id="inMax" type="number" inputmode="numeric"></div>
+    <div class="row"><label for="inSlots">マスの数</label><input id="inSlots" type="number" inputmode="numeric"></div>
+    <div class="row"><label for="inRoom">連携コード</label><input id="inRoom" type="text" autocapitalize="characters" autocomplete="off" style="width:130px;text-align:left;text-transform:uppercase"></div>
+    <div class="row"><label for="inAd">広告</label><select id="inAd" style="font:700 15px var(--font);padding:8px 10px;border:1.5px solid #e2e2e4;border-radius:8px;background:#fff;color:var(--ink)"><option value="ads">普通の広告</option><option value="offline">機内モード表示</option><option value="none">なし</option></select></div>
+    <button class="ok" id="btnOk">保存してリセット</button>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const S = { title:"11/5オリパ", min:1, max:150, slots:28, ad:"ads", order:"draw", se:true, bgm:true, askBulk:true, askReset:true, audSe:"default" };
+try { Object.assign(S, JSON.parse(localStorage.getItem("gtest-settings")||"{}")); } catch(e){}
+let drawn = [];
+try{ const dv=JSON.parse(localStorage.getItem("gtest-drawn")||"[]"); if(Array.isArray(dv)) drawn=dv.map(Number).filter(n=>isFinite(n)); }catch(e){}
+let busy = false;
+let queue = [], banned = [], qrev = 0, brev = 0, sched = {}, srev = 0;
+try{ const sv=JSON.parse(localStorage.getItem("gtest-secret")||"{}"); queue=sv.queue||[]; banned=sv.banned||[]; qrev=sv.qrev||0; brev=sv.brev||0; sched=sv.sched||{}; srev=sv.srev||0; }catch(e){}
+function saveSecret(){ try{ localStorage.setItem("gtest-secret",JSON.stringify({queue,banned,qrev,brev,sched,srev})); }catch(e){} }
+
+/* ---------- 操作側との連携（ntfy.sh 経由） ---------- */
+const me=Math.random().toString(36).slice(2,9);
+let room="", es=null;
+try{ room=(localStorage.getItem("gtest-room")||""); }catch(e){}
+const qp=new URLSearchParams(location.search).get("room"); if(qp) { room=qp.toUpperCase(); try{localStorage.setItem("gtest-room",room);}catch(e){} }
+function topic(){ return "gtest-v1-"+room.toLowerCase(); }
+/* 接続が切れていた間の予約・除外も取りこぼさないように、前回の続きから受け取る（since） */
+let lastEvt=Date.now();
+function sinceKey(){ return "gtest-since-"+room; }
+function connect(){
+  if(es){ es.close(); es=null; } if(!room) return;
+  let since=""; try{ since=localStorage.getItem(sinceKey())||""; }catch(e){}
+  es=new EventSource("https://ntfy.sh/"+topic()+"/sse?since="+encodeURIComponent(since||"10m"));
+  lastEvt=Date.now();
+  es.onmessage=e=>{ lastEvt=Date.now(); try{ const d=JSON.parse(e.data); if(d.event && d.event!=="message") return;
+    if(d.id){ try{ localStorage.setItem(sinceKey(),d.id); }catch(_){} }
+    const m=JSON.parse(d.message); if(m.from===me) return; onRemote(m); }catch(_){} };
+  es.onopen=()=>{ lastEvt=Date.now(); sendState(); };
+  es.onerror=()=>{ lastEvt=Math.min(lastEvt,Date.now()-60000); };
+}
+setInterval(()=>{ if(!document.hidden && Date.now()-lastEvt>70000) connect(); },15000);
+function send(m){ if(!room) return; m.from=me; m.at=Date.now(); fetch("https://ntfy.sh/"+topic(),{method:"POST",body:JSON.stringify(m)}).catch(()=>{}); }
+function sendState(){ saveSecret(); send({t:"state", drawn, queue, banned, qrev, brev, sched, srev, min:S.min, max:S.max, slots:S.slots, busy, open:!document.getElementById("ov").hidden}); }
+function setRoom(r){ room=r; try{localStorage.setItem("gtest-room",room);}catch(e){} connect(); }
+function onRemote(m){
+  // 予約・除外は「番号（rev）」が新しいときだけ反映する。古い内容で上書きされない
+  if(m.t==="hello"){ sendState(); return; }
+  if(m.t==="queue"){ if((m.qrev||0)>qrev){ queue=(m.queue||[]).map(Number).filter(n=>isFinite(n)); qrev=m.qrev; render(); } sendState(); return; }
+  if(m.t==="sched"){ if((m.srev||0)>srev){ sched={}; for(const k in (m.sched||{})){ const n=Number(m.sched[k]); if(isFinite(n)) sched[k]=n; } srev=m.srev; saveSecret(); } sendState(); return; }
+  if(m.t==="ban"){ if((m.brev||0)>brev){ banned=(m.banned||[]).map(Number).filter(n=>isFinite(n)); brev=m.brev; render(); } sendState(); return; }
+  // 抽選などの操作は、時間がたったもの（つながっていなかった間の分）は実行しない
+  if(m.at && Math.abs(Date.now()-m.at)>15000) return;
+  if(m.t==="draw"){ if(closeResolve && phase==="result"){ closeResolve(); } else if(!busy){ document.getElementById("btnDraw").click(); } }
+  else if(m.t==="close"){ closeResolve && closeResolve(); }
+  else if(m.t==="bulk"){ if(!busy) doBulk(); }
+  else if(m.t==="undo"){ if(!busy && drawn.length){ drawn.pop(); render(); sendState(); } }
+  else if(m.t==="reset"){ if(!busy){ drawn=[]; render(); sendState(); } }
+  else if(m.t==="set"){ if(!busy && Array.isArray(m.drawn)){ drawn=m.drawn.map(Number); render(); sendState(); } }
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) connect(); });
+
+
+function schedFor(k){ const n=sched[k]; return (n!=null && !drawn.includes(n) && n>=S.min && n<=S.max) ? n : null; }
+function laterSched(){ const out=[]; for(const k in sched){ if(+k>drawn.length) out.push(sched[k]); } return out; }
+function pool(){ const later=laterSched(); const a=[]; for(let n=S.min;n<=S.max;n++) if(!drawn.includes(n) && !banned.includes(n) && !later.includes(n)) a.push(n); return a; }
+function render(){
+  try{ localStorage.setItem("gtest-drawn",JSON.stringify(drawn)); }catch(e){}
+  $("title").textContent = S.title;
+  const g=$("grid"); g.innerHTML="";
+  const count=Math.max(S.slots, drawn.length);
+  const disp = S.order==="asc" ? drawn.slice().sort((a,b)=>a-b) : S.order==="desc" ? drawn.slice().sort((a,b)=>b-a) : drawn;
+  for(let i=0;i<count;i++){
+    const c=document.createElement("div"); c.className="cell";
+    c.innerHTML=`<small>${i+1}</small>`+(disp[i]!=null?`<span>${disp[i]}</span>`:`<span class="q">?</span>`);
+    if(disp[i]!=null){ c.classList.add("filled"); c.dataset.n=disp[i]; }
+    g.appendChild(c);
+  }
+  $("btnDraw").disabled = (pool().length===0 && !queue.length) || drawn.length>=S.slots;
+}
+function markHit(i){ const c=$("grid").querySelector(`.cell[data-n="${drawn[i]}"]`); if(c){ c.classList.add("hit"); c.scrollIntoView({block:"nearest",behavior:"smooth"}); } }
+
+/* ---------- canvas wheel ---------- */
+const cv=$("cv"), ctx=cv.getContext("2d"), cf=$("cf"), fx=cf.getContext("2d");
+let W=0, DPR=1, SW=0, SH=0, panelBox=null;
+function fit(){
+  DPR=Math.min(3,window.devicePixelRatio||1);
+  const r=cv.getBoundingClientRect(); W=r.width; cv.width=r.width*DPR; cv.height=r.height*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  SW=innerWidth; SH=cf.getBoundingClientRect().height||innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
+  const sb=$("stage").getBoundingClientRect(), cb=cf.getBoundingClientRect(); panelBox={x:sb.left-cb.left,y:sb.top-cb.top,w:sb.width,h:sb.height};
+}
+const COLORS=["#009dd6","#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#2eff00","#fe82c6","#fe82c6"];
+let balls=[], angle=0, spin=0, lastShuffle=0;
+// 実機と同じ動き: 玉は物理計算せず、0.1秒ごとに中の並びがパッと入れ替わる（これが「震え」に見える）
+const BR=.211, INNER=.744;
+function initBalls(){
+  const order=COLORS.slice().sort(()=>Math.random()-.5);
+  balls=[];
+  for(const c of order){ let best=null, bestD=-1; const up=Math.random()<.22;
+    for(let k=0;k<60;k++){ const a=Math.random()*Math.PI*2; let r=Math.sqrt(Math.random())*INNER;
+      let x=Math.cos(a)*r, y=Math.sin(a)*r;
+      if(!up){ // 底にたまる玉
+        y=.15+Math.random()*.6; const lim=Math.sqrt(Math.max(0,INNER*INNER-y*y)); x=(Math.random()*2-1)*lim; }
+      let md=9; for(const o of balls) md=Math.min(md,Math.hypot(o.x-x,o.y-y));
+      if(md>BR*1.7){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
+    balls.push({x:best.x,y:best.y,c}); }
+}
+// 実機の「震え」: ガラポン全体が0.1秒周期で右下へ約2pt動いて戻る（玉の入れ替えと同じ周期）
+const SHAKE=[0,1/6,4/6,1,1,2.5/6]; let shake=0;
+function step(dt){ const now=performance.now(); if(now-lastShuffle>=100){ lastShuffle=now; initBalls(); }
+  shake=SHAKE[Math.min(5,Math.floor((now-lastShuffle)/100*6))]; }
+function drawWheel(out){
+  const s=W, cx=s*.499, cy=s*.45, R=s*.323, line=getComputedStyle(document.documentElement).getPropertyValue("--rim").trim()||"#fde4dd";
+  ctx.clearRect(0,0,s,s);
+  ctx.save(); const sh=shake*s*.0049; ctx.translate(sh,sh);
+  ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle=line;
+  // stand
+  ctx.lineCap="butt"; const fy=cy+R*1.32;
+  ctx.lineWidth=s*.0106; ctx.beginPath(); ctx.moveTo(cx-R*.347,cy+R*1.0); ctx.lineTo(cx-R*.435,fy); ctx.moveTo(cx+R*.347,cy+R*1.0); ctx.lineTo(cx+R*.435,fy); ctx.stroke();
+  ctx.lineWidth=s*.014; ctx.beginPath(); ctx.moveTo(cx-R*.592,fy); ctx.lineTo(cx+R*.592,fy); ctx.stroke(); ctx.lineCap="round";
+  // balls
+  ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+  for(const b of balls){ ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(cx+b.x*R,cy+b.y*R,BR*R,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+  // spokes
+  ctx.lineWidth=s*.013; const hr=R*.156;
+  for(let i=0;i<3;i++){ const a=angle+i*Math.PI*2/3; ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*hr,cy+Math.sin(a)*hr); ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.stroke(); }
+  // rim + hub ring
+  ctx.lineWidth=s*.0286; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--panel").trim()||"#fc3458"; ctx.lineWidth=s*.018; ctx.beginPath(); ctx.arc(cx,cy,hr,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  // big translucent ball with the number zooming out of the drum
+  if(out){ const r=R*(.25+.85*out.k);
+    ctx.fillStyle=`rgba(255,240,236,${.55+.3*out.k})`; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+    ctx.lineWidth=s*.008; ctx.strokeStyle="rgba(255,255,255,.9)"; ctx.stroke();
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--num").trim()||"#e8384f";
+    ctx.font=`800 ${r*.5}px "Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(out.n,cx,cy+r*.04); }
+}
+
+/* ---------- confetti (wide twisted ribbons around the card edges + pale diamonds, almost still) ---------- */
+// 実機と同じ紙吹雪（毎回同じ配置）。座標は結果カード基準（0〜1、はみ出しあり）
+const CONF=[["#16b0de",[0.8242,-0.0576,0.8173,-0.065,0.8111,-0.0695,0.7923,-0.0695,0.7915,-0.0687,0.8025,-0.0568,0.8123,-0.0401,0.8173,-0.0274,0.8209,-0.0094,0.8209,0.0106,0.8189,0.0209,0.814,0.0343,0.8087,0.0429,0.8017,0.0503,0.7919,0.056,0.7833,0.0507,0.776,0.0425,0.7702,0.0319,0.767,0.0209,0.7641,-0.0033,0.7649,-0.0785,0.7617,-0.0965,0.758,-0.1055,0.7535,-0.1116,0.7445,-0.1161,0.7142,-0.1169,0.7081,-0.1149,0.702,-0.1108,0.6954,-0.1026,0.6917,-0.0953,0.6877,-0.0793,0.686,-0.0527,0.6885,-0.0106,0.686,0.0102,0.6823,0.0221,0.675,0.036,0.666,0.0458,0.6492,0.0585,0.6128,0.0805,0.5957,0.0969,0.5899,0.1059,0.5863,0.1157,0.5854,0.1243,0.5863,0.137,0.5887,0.139,0.6096,0.1455,0.61,0.1423,0.6071,0.1292,0.6071,0.1231,0.6108,0.1092,0.6186,0.0961,0.6271,0.0867,0.6361,0.0793,0.6721,0.0572,0.6848,0.0482,0.695,0.0384,0.7007,0.0298,0.7061,0.018,0.7093,0.0049,0.7101,-0.0061,0.7085,-0.0523,0.7093,-0.0765,0.7146,-0.0965,0.7204,-0.1063,0.7244,-0.1108,0.7285,-0.1128,0.731,-0.1116,0.7339,-0.1079,0.7379,-0.0998,0.7416,-0.0846,0.7416,0.0029,0.7449,0.0221,0.751,0.0384,0.7559,0.0458,0.7653,0.0531,0.7739,0.0568,0.7833,0.0576,0.8128,0.0564,0.8205,0.0531,0.8307,0.0437,0.8365,0.0343,0.8426,0.0155,0.8434,0.0061,0.8426,-0.0159,0.8357,-0.0388,0.8316,-0.047]],["#fe98d2",[0.0098,0.5973,0.0074,0.6132,0.0078,0.619,0.0172,0.6329,0.0196,0.6341,0.02,0.6243,0.0221,0.6157,0.0303,0.5973,0.0388,0.585,0.0519,0.572,0.0634,0.5642,0.0805,0.5572,0.0924,0.5556,0.103,0.5576,0.1108,0.5617,0.1128,0.5695,0.1108,0.5822,0.1067,0.5916,0.0998,0.6018,0.0805,0.6206,0.0405,0.6504,0.0258,0.6627,0.0168,0.6725,0.0114,0.6815,0.0098,0.6864,0.0098,0.695,0.0135,0.7024,0.0258,0.7204,0.0298,0.7244,0.0364,0.7281,0.0433,0.7298,0.0495,0.7298,0.0581,0.7281,0.0736,0.7212,0.0834,0.7155,0.094,0.7073,0.0993,0.7011,0.1214,0.6827,0.1402,0.6717,0.1533,0.6676,0.1656,0.6664,0.1795,0.6688,0.1979,0.6754,0.2326,0.6905,0.2457,0.6938,0.2657,0.6938,0.2719,0.6917,0.2837,0.6852,0.2899,0.6783,0.2821,0.6558,0.2805,0.6562,0.2698,0.668,0.2596,0.6742,0.2527,0.6762,0.2383,0.677,0.2289,0.6758,0.2175,0.6725,0.1758,0.6545,0.1611,0.65,0.1402,0.65,0.1284,0.6537,0.1087,0.6652,0.0826,0.6877,0.0609,0.7036,0.0507,0.7085,0.0405,0.7118,0.0258,0.7118,0.0221,0.7089,0.0221,0.7048,0.0253,0.6971,0.0315,0.6881,0.0503,0.6709,0.0965,0.6361,0.1112,0.6214,0.1202,0.6083,0.1239,0.5985,0.1239,0.5809,0.1169,0.567,0.1083,0.5552,0.0989,0.545,0.0891,0.5397,0.0822,0.5388,0.0666,0.5397,0.0568,0.5429,0.0397,0.5531,0.029,0.563,0.0184,0.5777]],["#fe98d2",[0.1153,0.872,0.1026,0.8684,0.0936,0.8692,0.0871,0.8741,0.0818,0.8835,0.0785,0.9002,0.0785,0.9599,0.0765,0.9702,0.0699,0.989,0.065,0.9984,0.0572,1.0098,0.0499,1.0168,0.0384,1.0229,0.0356,1.0225,0.0233,1.0098,0.0098,0.9922,-0.0025,0.98,-0.0114,0.9747,-0.0217,0.9718,-0.0237,0.9722,-0.0106,0.9865,0.0045,1.0057,0.0159,1.0164,0.0303,1.0229,0.036,1.0233,0.045,1.027,0.0581,1.0274,0.0654,1.0245,0.0715,1.0204,0.0793,1.0127,0.0895,0.9959,0.0944,0.9828,0.0977,0.9697,0.0985,0.962,0.0977,0.917,0.1006,0.8945,0.1059,0.881,0.1096,0.8769,0.1149,0.8741]],["#fed216",[0.388,-0.0687,0.3868,-0.067,0.3868,-0.0576,0.3876,-0.0531,0.3913,-0.0466,0.399,-0.0401,0.4235,-0.029,0.435,-0.0217,0.4419,-0.0135,0.4448,-0.0049,0.4436,-0.0012,0.4342,0.0082,0.4146,0.0233,0.406,0.0331,0.3998,0.0474,0.3966,0.0585,0.3966,0.0679,0.4019,0.0793,0.4137,0.0908,0.435,0.1014,0.4501,0.1051,0.4759,0.1051,0.4996,0.1083,0.5094,0.1124,0.5172,0.1214,0.5188,0.1214,0.5213,0.1153,0.5221,0.1071,0.5209,0.1018,0.5159,0.0961,0.5086,0.0924,0.4918,0.0891,0.4673,0.0891,0.4432,0.0854,0.4199,0.0744,0.4137,0.0695,0.4064,0.0613,0.4023,0.054,0.4023,0.0478,0.4133,0.0364,0.4313,0.0225,0.4407,0.011,0.4452,0.0004,0.4493,-0.0143,0.4493,-0.0258,0.444,-0.0343,0.4374,-0.0405,0.4252,-0.0474,0.4039,-0.0568,0.3953,-0.0642,0.3921,-0.0691]],["#fe4e74",[0.4178,0.8217,0.4039,0.8177,0.3994,0.8177,0.3937,0.8193,0.3847,0.8242,0.3696,0.8361,0.3561,0.8496,0.3287,0.8818,0.3034,0.9068,0.2882,0.9186,0.2756,0.9268,0.2588,0.935,0.2486,0.9374,0.2469,0.9395,0.2547,0.9424,0.2698,0.9424,0.2858,0.937,0.307,0.9248,0.3226,0.9129,0.3455,0.8908,0.3684,0.8639,0.3913,0.8401,0.4043,0.8299,0.417,0.8234]],["#f24268",[0.0711,-0.1337,0.0662,-0.119,0.0662,-0.1059,0.072,-0.0859,0.0805,-0.0679,0.0957,-0.0442,0.1075,-0.029,0.1259,-0.0102,0.1517,0.0192,0.1623,0.0343,0.168,0.0454,0.1701,0.0536,0.1717,0.054,0.1762,0.0405,0.1762,0.0327,0.1742,0.0249,0.1684,0.0135,0.1537,-0.0065,0.1141,-0.0491,0.0924,-0.0785,0.085,-0.0912,0.076,-0.1112,0.0724,-0.1251,0.0724,-0.1329]],["#f2c60a",[0.7101,1.0184,0.7024,1.0262,0.6836,1.0405,0.6774,1.0466,0.6733,1.0527,0.6672,1.0679,0.6648,1.0777,0.6656,1.0891,0.6684,1.0948,0.6733,1.1014,0.6819,1.1087,0.7007,1.1186,0.7126,1.1222,0.722,1.1222,0.7318,1.1239,0.7547,1.1239,0.7661,1.1259,0.778,1.1308,0.7833,1.1357,0.7854,1.1402,0.7866,1.1402,0.7903,1.13,0.7903,1.1239,0.7866,1.1165,0.7825,1.1132,0.7743,1.1096,0.7661,1.1079,0.7469,1.1063,0.7249,1.1063,0.7146,1.1043,0.7028,1.1002,0.6889,1.0928,0.6811,1.0867,0.6729,1.0769,0.6693,1.0666,0.6758,1.0593,0.6946,1.045,0.7044,1.0356,0.711,1.0245,0.7122,1.018]],["#fe98d2",[0.9391,0.7142,0.9354,0.7187,0.9366,0.7228,0.9407,0.7302,0.9489,0.7371,0.953,0.7388,0.9608,0.7396,0.9918,0.7388,1.0016,0.7404,1.0114,0.7445,1.0176,0.751,1.0196,0.7551,1.0176,0.7637,1.0041,0.7903,0.9992,0.8025,0.9984,0.8087,0.9992,0.8316,1.0008,0.8397,1.0029,0.8438,1.0114,0.8528,1.0274,0.8598,1.0397,0.8614,1.0397,0.8414,1.029,0.8414,1.0196,0.8393,1.0086,0.834,1.0012,0.8262,1.0012,0.8205,1.0033,0.8148,1.0168,0.789,1.0217,0.7751,1.0225,0.7576,1.0188,0.7388,1.0147,0.7306,1.0094,0.7257,0.9959,0.7212,0.9554,0.7212,0.9477,0.7191]],["#58ba3c",[0.0319,-0.0425,0.0209,0.0078,-0.0262,0.0237,-0.0159,-0.0266]],["#9cfe80",[0.6014,0.0029,0.5908,0.0527,0.5437,0.0687,0.5548,0.0184]],["#fee680",[0.9105,0.5785,0.8998,0.628,0.8532,0.6443,0.8635,0.594]],["#fe98d2",[0.0687,0.2334,0.0621,0.2261,0.0572,0.224,0.0495,0.2244,0.0437,0.2277,0.0331,0.2388,0.0151,0.2682,0.0049,0.2813,-0.0049,0.2899,-0.02,0.2989,-0.0286,0.3017,-0.0392,0.3025,-0.0392,0.3107,-0.0315,0.3136,-0.0164,0.3136,-0.0106,0.3119,0.0049,0.3034,0.0204,0.289,0.0425,0.2539,0.0503,0.2445,0.0617,0.2363,0.0691,0.2355]],["#58ba3c",[0.3692,1.0029,0.3598,1.0397,0.3128,1.054,0.3246,1.0033]],["#fed216",[1.0397,0.0572,1.0237,0.0474,1.0098,0.0442,0.9865,0.0442,0.9783,0.0478,0.9734,0.0527,0.9685,0.0621,0.9648,0.0748,0.962,0.0928,0.9587,0.1051,0.9546,0.1128,0.9497,0.1182,0.9513,0.1226,0.9567,0.1239,0.9624,0.1222,0.9689,0.1186,0.9747,0.112,0.9791,0.0998,0.9824,0.0789,0.9861,0.065,0.9902,0.0568,0.9963,0.0495,1.0041,0.0454,1.0098,0.0474,1.0384,0.0715,1.0397,0.0715]],["#9cfe80",[0.8275,0.4436,0.8606,0.4534,0.8729,0.5061,0.8406,0.4955]],["#9cfe80",[0.9027,0.9121,0.9346,0.9215,0.9481,0.9747,0.9158,0.9652]],["#fee680",[0.7939,0.7576,0.8267,0.749,0.8655,0.7862,0.834,0.7952]],["#fee680",[0.2085,0.3287,0.2408,0.3197,0.2805,0.3569,0.2469,0.3655]],["#fec6e6",[0.7506,0.2518,0.751,0.3058,0.722,0.332,0.7212,0.278]],["#80a8cc",[0.928,0.1942,0.9616,0.1999,0.982,0.249,0.9477,0.2433]],["#9cfe80",[0.4661,0.8716,0.4665,0.926,0.4379,0.9513,0.4374,0.8974]],["#80d4ec",[0.2911,0.6791,0.3111,0.6917,0.3107,0.7453,0.2821,0.7273,0.2821,0.6881]],["#fec6e6",[0.7666,0.0012,0.7997,0.0008,0.8099,0.0074,0.8107,0.0368,0.8046,0.0454,0.7706,0.0266]],["#9cfe80",[0.9648,0.3029,0.9971,0.3132,1.0012,0.3279,1.0008,0.3626,0.9771,0.3549]],["#fed216",[0.6566,0.9493,0.6549,0.9513,0.6549,0.9616,0.6594,0.9714,0.6688,0.9787,0.6909,0.9886,0.7032,0.9963,0.7097,1.0037,0.7134,1.0143,0.7167,1.0037,0.7167,0.993,0.7114,0.9828,0.6991,0.9734,0.6819,0.9661,0.6688,0.9587,0.6643,0.9546,0.6607,0.9489]],["#fe4e74",[0.8168,0.8217,0.8107,0.8246,0.8046,0.8316,0.7989,0.8434,0.7956,0.8549,0.7915,0.8839,0.7923,0.9056,0.7915,0.933,0.7895,0.9428,0.787,0.9485,0.7874,0.9501,0.7907,0.9493,0.796,0.9456,0.8009,0.9354,0.8025,0.9272,0.8025,0.8761,0.8042,0.8688,0.8042,0.8606,0.8078,0.8438]],["#be5e72",[0.9943,0.0065,1.0286,-0.0016,1.0397,0.0078,1.0397,0.0437,1.0327,0.0437]],["#bea440",[-0.0392,0.0944,-0.0319,0.0944,0.0004,0.1247,0.0004,0.1329,-0.0262,0.141,-0.0392,0.1308]],["#ba5c70",[-0.0135,0.9865,-0.0135,1.0151,0.0221,1.0376,0.0331,1.0433,0.0339,1.0425,0.0335,1.0253,0.0176,1.0184,0.0057,1.0086,-0.0102,0.9886]],["#be86a6",[1.0082,0.3782,1.0245,0.4084,1.002,0.4464,1.0016,0.3872]],["#fee680",[0.5581,0.8046,0.5871,0.8217,0.5867,0.8479,0.5576,0.8299]],["#fec6e6",[0.7584,0.5752,0.7854,0.6194,0.7858,0.6476,0.7592,0.6038]],["#fec6e6",[0.8868,0.2825,0.9133,0.3254,0.9141,0.3549,0.8876,0.3119]],["#fee680",[0.8704,0.139,0.8626,0.1897,0.8446,0.2114,0.8532,0.1594]],["#be5e72",[1.0172,0.9587,1.0176,1.0123,1.0037,1.0352,1.0033,0.9824]],["#fee680",[0.121,0.8814,0.15,0.9244,0.1513,0.9509,0.1218,0.9084]],["#fee680",[0.8217,0.9571,0.8496,0.9738,0.8491,1.0,0.8213,0.9832]],["#fea0b4",[0.1247,0.0691,0.1513,0.1124,0.1517,0.141,0.1255,0.0977]],["#80d4ec",[0.7339,0.9019,0.7621,0.9182,0.7617,0.9444,0.7339,0.9276]],["#80d4ec",[0.085,0.1112,0.063,0.157,0.0397,0.1729,0.0626,0.1263]],["#80d4ec",[0.9828,0.7886,0.955,0.8299,0.9297,0.843,0.9571,0.8017]],["#80d4ec",[0.2739,0.0474,0.2743,0.0998,0.2604,0.1226,0.26,0.0707]],["#fec6e6",[0.4346,0.76,0.4918,0.7678,0.5192,0.7837,0.4599,0.7756]],["#fec6e6",[1.0008,0.3913,1.0012,0.4489,0.9971,0.455,0.9808,0.4248]],["#fea0b4",[0.7175,0.0953,0.7768,0.1038,0.8013,0.119,0.7428,0.1108]],["#80d4ec",[0.1877,0.8034,0.2453,0.8111,0.2706,0.8262,0.2122,0.8181]],["#9cfe80",[0.045,0.7874,0.0168,0.8283,0.0012,0.8361,0.0008,0.8246,0.018,0.8009]],["#80a8cc",[0.2302,0.9248,0.2592,0.944,0.2592,0.9685,0.2302,0.9513]],["#80a8cc",[0.0106,0.5245,0.0388,0.5413,0.0397,0.5519,0.0303,0.5613,0.0102,0.5507]],["#baa23c",[0.657,1.0016,0.677,1.0053,0.6885,1.0315,0.6877,1.0372,0.6676,1.0311]],["#80a8cc",[0.1791,0.0143,0.1995,0.018,0.2114,0.0474,0.1913,0.0446]],["#be86a6",[1.0082,0.6991,1.0074,0.6999,1.0065,0.7179,1.0049,0.7232,1.0106,0.7265,1.0176,0.7355,1.0229,0.7596,1.0221,0.7686,1.0262,0.7751,1.0278,0.776,1.0298,0.7584,1.0298,0.7461,1.0106,0.7016]],["#baa23c",[0.4587,-0.0503,0.4591,-0.0008,0.4469,0.0004,0.4473,-0.0323]],["#baa23c",[0.9178,-0.0523,0.9334,-0.0425,0.933,-0.0151,0.9174,-0.0241]],["#80a8cc",[0.8896,0.1092,0.9039,0.1177,0.9035,0.1451,0.8888,0.1361]],["#58ba3c",[0.536,1.0049,0.5507,1.0188,0.5442,1.0372,0.529,1.0233]],["#be86a6",[-0.0086,0.6856,-0.0004,0.7032,-0.0196,0.7044,-0.0286,0.6864]],["#fec6e6",[0.3148,0.0437,0.3291,0.0572,0.3222,0.0752,0.3074,0.0613]],["#fec6e6",[0.0638,0.2081,0.0822,0.2138,0.0842,0.233,0.0642,0.2277]],["#9cfe80",[0.1545,0.177,0.1619,0.1954,0.148,0.2085,0.1406,0.1905]],["#fec6e6",[0.3479,0.2551,0.3565,0.2727,0.3365,0.2739,0.3287,0.2563]],["#fec6e6",[0.3132,0.1533,0.3209,0.1709,0.3009,0.1713,0.2931,0.1537]],["#9cfe80",[0.6807,0.2065,0.6889,0.2232,0.6697,0.2253,0.6611,0.2077]],["#fec6e6",[0.872,0.7968,0.8802,0.8144,0.8602,0.8148,0.852,0.7968]],["#9cfe80",[0.7617,0.0679,0.7702,0.0854,0.7506,0.0867,0.7424,0.0683]],["#fec6e6",[0.6087,0.7101,0.6173,0.7281,0.5977,0.7289,0.5895,0.711]],["#9cfe80",[0.1259,0.455,0.1345,0.4734,0.1145,0.4734,0.1067,0.4563]],["#fee680",[0.0544,0.0053,0.0626,0.0229,0.0433,0.0241,0.0348,0.0065]],["#fec6e6",[0.5454,0.1909,0.554,0.2093,0.5339,0.2093,0.5262,0.1922]],["#fee680",[0.1206,0.7976,0.1288,0.8152,0.1096,0.8164,0.101,0.7989]],["#80a8cc",[0.7249,0.7629,0.733,0.7809,0.7134,0.7809,0.7056,0.7633]],["#fee680",[0.8945,0.6427,0.9019,0.6594,0.8831,0.6611,0.8745,0.6435]],["#3c90aa",[0.1214,-0.0482,0.15,-0.0319,0.1504,-0.0135,0.1235,-0.0405]],["#be86a6",[1.0229,0.8164,1.0397,0.8246,1.0397,0.841,1.0204,0.8385]],["#ba5c70",[0.0004,0.9804,0.0331,1.0,0.0335,1.0176]],["#ba82a2",[0.7666,-0.0188,0.7968,-0.0004,0.7666,0.0]],["#80d4ec",[0.1214,0.0012,0.1345,0.0016,0.1504,0.0233,0.1231,0.0082]],["#9cfe80",[0.372,0.989,0.3684,1.0012,0.3352,1.0008]],["#fee680",[0.4579,0.0008,0.4452,0.0262,0.444,0.0025]],["#fee680",[0.0012,0.2351,0.0082,0.2367,0.0139,0.2531,0.0012,0.2535]],["#fea0b4",[0.0012,0.1917,0.0082,0.193,0.0147,0.2097,0.0012,0.2093]],["#bea440",[-0.0119,0.2355,0.0,0.2351,0.0,0.2543,-0.0061,0.2522]],["#be5e72",[-0.0119,0.1913,0.0,0.1917,0.0,0.2101,-0.0061,0.2081]],["#fec6e6",[0.103,0.7155,0.1002,0.7191,0.0822,0.7179,0.0957,0.7056]],["#5cbe40",[1.002,0.334,1.0098,0.3663,1.0016,0.363]],["#fec6e6",[0.3892,0.8042,0.4027,0.8099,0.4039,0.816,0.39,0.8193]],["#5cbe40",[0.0,0.8271,0.0004,0.8369,-0.011,0.8426]],["#3c90aa",[0.1214,-0.0106,0.1312,0.0004,0.1214,0.0]],["#787878",[0.0176,0.0106,0.0135,0.011,0.0061,0.0143,0.0074,0.0192,0.0033,0.0315,0.0074,0.0233]],["#787878",[0.0037,0.9722,0.0114,0.9857,0.002,0.9804]],["#fee680",[0.7408,0.0119,0.7437,0.0262,0.7375,0.02]],["#f28cc6",[-0.0392,0.9759,-0.0392,0.9681,-0.0278,0.9706]],["#fef8de",[0.0556,0.0029,0.0384,0.0041]]];
+let bits=[], revealE=0;
+function initConfetti(){ bits=CONF; }
+function drawConfetti(t, alpha, revealing){
+  fx.clearRect(0,0,SW,SH); if(alpha<=0) return; fx.globalAlpha=alpha; fx.save();
+  const P=panelBox, cx=P.x+P.w*.499, cy=P.y+P.h*.45;
+  if(revealing){ const pr=Math.max(.001,revealE)*Math.hypot(P.w,P.h)/2;
+    fx.beginPath(); fx.arc(cx,cy,pr,0,Math.PI*2); fx.clip();
+    const sc=.35+.65*revealE; fx.translate(cx,cy); fx.scale(sc,sc); fx.translate(-cx,-cy); }
+  for(const [c,pts] of CONF){ fx.fillStyle=c; fx.beginPath();
+    for(let i=0;i<pts.length;i+=2){ const x=P.x+pts[i]*P.w, y=P.y+pts[i+1]*P.h; i?fx.lineTo(x,y):fx.moveTo(x,y); }
+    fx.closePath(); fx.fill(); }
+  fx.restore(); fx.globalAlpha=1;
+}
+
+/* ---------- sequence: spin → ball comes out → number + confetti → closes by itself ---------- */
+let raf=0, phase="", closeResolve=null;
+function runDraw(n, fast, onReveal){
+  return new Promise(res=>{
+    const ov=$("ov"), st=$("stage"), num=$("num"), rv=$("rv");
+    const clip=v=>{ rv.style.clipPath=v; rv.style.webkitClipPath=v; };
+    ov.classList.remove("out"); ov.classList.add("pre"); ov.hidden=false;
+    requestAnimationFrame(()=>ov.classList.remove("pre")); clip("circle(0% at 49.9% 45%)"); num.textContent=(n===null?"":n); num.style.transform="translateY(-50%) scale(.35)"; rv.style.opacity=".85";
+    fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
+    const bulk=(n===null); const SPIN=bulk?2.1:(fast?.8:2.3), EMERGE=fast?.15:.27, HOLD=fast?.5:.9, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
+    let t0=performance.now(), last=t0; phase="spin";
+    cancelAnimationFrame(raf);
+    const loop=now=>{
+      const dt=Math.min(.033,(now-last)/1000); last=now; const t=(now-t0)/1000;
+      if(phase==="spin"){
+        spin=1.57;
+        angle+=spin*dt; step(dt); drawWheel(null);
+        if(t>=SPIN){ phase=bulk?"closing":"emerge"; t0=now; }
+      } else if(phase==="emerge"){
+        angle+=spin*dt; step(dt); drawWheel(null);
+        if(!bits.length){ initConfetti(); onReveal&&onReveal(); }
+        const k=Math.min(1,t/EMERGE), e=1-Math.pow(1-k,2); revealE=.1+.9*e; clip(`circle(${(9+e*71).toFixed(2)}% at 49.9% 45%)`);
+        num.style.transform=`translateY(-50%) scale(${(.35+.65*e).toFixed(3)})`; rv.style.opacity=(.85+.15*e).toFixed(3);
+        drawConfetti(0, 1, true);
+        if(t>=EMERGE){ phase="result"; t0=now; clip("none"); num.style.transform=""; rv.style.opacity=""; ctx.clearRect(0,0,W,W); sendState(); }
+      } else if(phase==="result"){
+        const a = t<HOLD?1:Math.max(0,1-(t-HOLD)/FADE);
+        drawConfetti(t,a);
+        if(t>=HOLD+FADE+PLAIN){ phase="closing"; t0=now; }
+      } else if(phase==="closing"){
+        ov.style.transition="none"; const o=Math.max(0,1-t/(bulk?.25:OUT)); ov.style.opacity=o.toFixed(3);
+        if(o<=0){ finish(); return; }
+      }
+      raf=requestAnimationFrame(loop);
+    };
+    const finish=()=>{ cancelAnimationFrame(raf); phase=""; fx.clearRect(0,0,SW,SH); ov.hidden=true; ov.classList.remove("out"); ov.style.opacity=""; ov.style.transition=""; closeResolve=null; res(); };
+    closeResolve=()=>{ if(phase==="result"){ phase="closing"; t0=performance.now(); } };
+    raf=requestAnimationFrame(loop);
+  });
+}
+$("ov").addEventListener("click",()=>closeResolve&&closeResolve());
+
+function nextQueued(extra){ while(queue.length){ const n=queue.shift(); qrev++; if(!drawn.includes(n) && !(extra||[]).includes(n) && n>=S.min && n<=S.max) return n; } return null; }
+async function drawOne(fast){
+  if(drawn.length>=S.slots) return false;
+  const p=pool();
+  let n = schedFor(drawn.length+1);
+  if(n===null) n = nextQueued(laterSched());
+  if(n===null){ if(!p.length) return false; n=p[Math.floor(Math.random()*p.length)]; }
+  await runDraw(n, fast, ()=>{ drawn.push(n); render(); markHit(drawn.length-1); });
+  sendState(); return true;
+}
+$("btnDraw").onclick=async()=>{ if(busy) return; busy=true; await drawOne(false); busy=false; };
+// 一括抽選: 確認 → ガラポンが1回回る → 消えたら残りのマスが全部一気に埋まる（実機と同じ）
+async function doBulk(){
+  if(busy) return; const left=Math.max(0,S.slots-drawn.length); if(!left) return;
+  busy=true; const picks=[];
+  for(let k=0;k<left;k++){ let n=null;
+    const slot=drawn.length+k+1;
+    n=sched[slot]; if(n==null || drawn.includes(n) || picks.includes(n) || n<S.min || n>S.max) n=null;
+    if(n===null) n=nextQueued(picks.concat(laterSched()));
+    if(n===null) { const p=pool().filter(x=>!picks.includes(x)); if(!p.length) break; n=p[Math.floor(Math.random()*p.length)]; }
+    picks.push(n); }
+  if(picks.length){ await runDraw(null,false); drawn.push(...picks); render(); sendState(); }
+  busy=false;
+}
+let cfmAction=null;
+function confirmBox(title,titleColor,msg,okLabel,action){ $("cfmT").textContent=title; $("cfmT").style.color=titleColor; $("cfmM").innerHTML=msg; $("cfmYes").textContent=okLabel; cfmAction=action; $("cfm").hidden=false; }
+$("btnBulk").onclick=()=>{ if(busy || drawn.length>=S.slots) return; if(S.askBulk===false){ doBulk(); return; } confirmBox("メッセージ","#000","すべての賞品を一括抽選しますか？","一括抽選",doBulk); };
+
+/* reset with in-page confirm (tap twice) */
+$("btnReset").onclick=()=>{ if(busy) return; if(S.askReset===false){ drawn=[]; render(); sendState(); return; } confirmBox("注意","#ff383c","抽選結果をリセットしますか？<br>この操作は取り消すことができません","リセット",()=>{ drawn=[]; render(); sendState(); }); };
+$("cfmNo").onclick=()=>{ $("cfm").hidden=true; cfmAction=null; };
+$("cfmYes").onclick=()=>{ $("cfm").hidden=true; const a=cfmAction; cfmAction=null; a&&a(); };
+
+/* settings */
+function openEventSettings(){ $("inTitle").value=S.title; $("inMin").value=S.min; $("inMax").value=S.max; $("inSlots").value=S.slots; $("inRoom").value=room; $("inAd").value=S.ad||"ads"; $("sheet").hidden=false; };
+$("sheet").addEventListener("click",e=>{ if(e.target.id==="sheet") $("sheet").hidden=true; });
+$("btnOk").onclick=()=>{
+  const mn=parseInt($("inMin").value,10), mx=parseInt($("inMax").value,10), sl=parseInt($("inSlots").value,10);
+  if(isFinite(mn)&&isFinite(mx)&&mx>mn){ S.min=mn; S.max=mx; }
+  if(isFinite(sl)&&sl>0&&sl<=400) S.slots=sl;
+  S.title=$("inTitle").value.trim()||S.title;
+  const rc=$("inRoom").value.trim().toUpperCase(); if(rc!==room){ setRoom(rc); }
+  try{ localStorage.setItem("gtest-settings",JSON.stringify(S)); }catch(e){}
+  drawn=[]; $("sheet").hidden=true; render(); sendState(); };
+function saveS(){ try{ localStorage.setItem("gtest-settings",JSON.stringify(S)); }catch(e){} }
+/* ↑↓ 並び順メニュー */
+$("btnSort").onclick=()=>{ document.querySelectorAll("#smenu button").forEach(b=>b.classList.toggle("on",b.dataset.o===(S.order||"draw"))); $("smenu").hidden=false; };
+$("smenu").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ S.order=b.dataset.o; saveS(); render(); } $("smenu").hidden=true; });
+/* ⚙ 設定ダイアログ */
+$("btnSettings").onclick=()=>{ document.querySelectorAll("#sdlg .tg").forEach(t=>t.classList.toggle("on",S[t.dataset.k]!==false)); $("sdlg").hidden=false; };
+$("sdlg").addEventListener("click",e=>{ if(e.target.id==="sdlg"){ $("sdlg").hidden=true; return; } const t=e.target.closest(".tg"); if(t){ S[t.dataset.k]=!(S[t.dataset.k]!==false); t.classList.toggle("on",S[t.dataset.k]); saveS(); } });
+$("lkBack").onclick=()=>{ $("sdlg").hidden=true; };
+$("lkEvent").onclick=()=>{ $("sdlg").hidden=true; openEventSettings(); };
+$("lkPdf").onclick=()=>{}; $("lkDel").onclick=()=>{};
+/* ♪ オーディオ管理 */
+$("btnShuffle").onclick=()=>{ setAudTab("se"); $("audio").hidden=false; };
+function setAudTab(t){ document.querySelectorAll("#audSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===t)); $("audName").textContent = t==="se"?"デフォルト":"なし"; }
+$("audSeg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) setAudTab(b.dataset.t); });
+$("audClose").onclick=()=>{ $("audio").hidden=true; };
+/* ✕ 抽選イベントリスト */
+$("btnClose").onclick=()=>{ $("evTitle").textContent=S.title; $("evCount").textContent=`抽選済み ${drawn.length}/${S.max-S.min+1}`; $("evl").hidden=false; };
+$("evCard").onclick=()=>{ $("evl").hidden=true; };
+addEventListener("resize",()=>{ if(!$("ov").hidden) fit(); });
+
+/* ---------- 下の広告（架空の広告2本を交互に / 機内モード表示） ---------- */
+const PLANE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8.5l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5z"/></svg>';
+const ADS=[
+  {kind:"bank",sp:"関西産業信用組合",l1:"定期預金のお申込みが、スマホでいつでも",l2:"ネットバンキングでかんたん手続き",b:"開く"},
+  {ic:'<span style="background:#27b36a;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">¥</span>',t:"ポケット家計簿",s:"レシートを撮るだけで、家計簿が自動で完成",b:"入手"},
+  {ic:'<span style="background:#ff8a00;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">英</span>',t:"ハナマル英会話 オンライン",s:"1回25分・初回の無料体験レッスン受付中",b:"開く"},
+  {ic:'<span style="background:#6a5cff;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">★</span>',t:"ほしぞらパズル",s:"1日5分の脳トレ。かんたん操作で毎日ログボ",b:"入手"},
+  {ic:'<span style="background:#e9445a;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">宿</span>',t:"たびまくら｜ホテル予約",s:"週末の温泉宿が最大30%OFF、今だけクーポン配布中",b:"開く"},
+  {ic:'<span style="background:#1e9be8;width:100%;height:100%;border-radius:8px;display:grid;place-items:center">歩</span>',t:"てくてく万歩計",s:"歩くだけでポイントが貯まる、毎日の健康習慣",b:"入手"}
+];
+let adIdx=0, adTimer=0;
+function adHTML(){
+  if(S.ad==="offline") return '<div class="ai">'+PLANE+'</div><div class="at"><b>機内モードがオンです</b><span>インターネットに接続されていないため、広告を表示できません</span></div><span class="ainfo">i</span>';
+  const a=ADS[adIdx%ADS.length];
+  if(a.kind==="bank") return '<div class="bk"><span class="bki">i</span><span class="bkd"></span><div class="bkt"><small>'+a.sp+'</small><b>'+a.l1+'</b><b>'+a.l2+'</b></div><div class="bkb">'+a.b+'<span>»</span></div></div>';
+  return '<div class="ai">'+a.ic+'</div><div class="at"><b>'+a.t+'</b><span>'+a.s+'</span></div><div class="ab">'+a.b+'</div><span class="adots">⋮</span>';
+}
+function showAd(slide){
+  const w=$("adwrap"), el=$("ad"); w.classList.toggle("none",S.ad==="none"); el.classList.toggle("off",S.ad==="offline");
+  const old=el.querySelector(".slide"), nw=document.createElement("div"); nw.className="slide"; nw.innerHTML=adHTML();
+  if(slide && old && !matchMedia("(prefers-reduced-motion:reduce)").matches){
+    nw.style.transform="translateX(100%)"; el.appendChild(nw); void nw.offsetWidth;
+    old.style.transition=nw.style.transition="transform .45s cubic-bezier(.4,0,.2,1)";
+    old.style.transform="translateX(-100%)"; nw.style.transform="translateX(0)";
+    setTimeout(()=>old.remove(),500);
+  } else { el.innerHTML=""; el.appendChild(nw); }
+}
+function applyAd(){ clearInterval(adTimer); showAd(false); /* 広告は切り替えない */ }
+$("inAd").addEventListener("change",()=>{ S.ad=$("inAd").value; try{ localStorage.setItem("gtest-settings",JSON.stringify(S)); }catch(e){} applyAd(); });
+applyAd();
+render();
+connect();
+/* ---------- 隠し設定（タイトルを5回すばやくタップ） ---------- */
+(function(){
+  let taps=0,last=0;
+  $("title").addEventListener("click",()=>{ const now=Date.now(); if(now-last>1500) taps=0; last=now; if(++taps>=5){ taps=0; openSec(); } });
+  function openSec(){ $("scW").textContent=""; $("bnW").textContent=""; $("scK").value=drawn.length+1; $("scN").value=""; $("bnN").value=""; drawSec(); $("sec").hidden=false; }
+  function drawSec(){
+    $("scNow").textContent=drawn.length; $("scNext").textContent=drawn.length+1;
+    const L=$("scList"); L.innerHTML="";
+    const ks=Object.keys(sched).map(Number).sort((a,b)=>a-b);
+    if(!ks.length) L.innerHTML='<span class="none">まだありません</span>';
+    ks.forEach(k=>{ const b=document.createElement("button"); b.className="chip"+(k<=drawn.length?" done":""); b.textContent=k+"回目 → "+sched[k]; b.onclick=()=>{ delete sched[k]; srev++; sendState(); drawSec(); }; L.appendChild(b); });
+    const B=$("bnList"); B.innerHTML="";
+    if(!banned.length) B.innerHTML='<span class="none">まだありません</span>';
+    banned.slice().sort((a,b)=>a-b).forEach(n=>{ const b=document.createElement("button"); b.className="chip b"; b.textContent=n; b.onclick=()=>{ banned=banned.filter(x=>x!==n); brev++; sendState(); drawSec(); render(); }; B.appendChild(b); });
+    let sh=false; try{ sh=document.documentElement.classList.contains("vpshort"); }catch(e){}
+    $("scDbg").textContent="screen "+screen.width+"x"+screen.height+" / inner "+innerWidth+"x"+innerHeight+" / short "+sh+" / ver "+APP_VER;
+  }
+  $("scAdd").onclick=()=>{
+    const k=parseInt($("scK").value,10), n=parseInt($("scN").value,10), W=$("scW");
+    if(!(k>=1)) return W.textContent="何回目かを入れてください";
+    if(!isFinite(n)) return W.textContent="番号を入れてください";
+    if(k<=drawn.length) return W.textContent=k+"回目はもう出ています（次は"+(drawn.length+1)+"回目）";
+    if(k>S.slots) return W.textContent="マスは"+S.slots+"個までです";
+    if(n<S.min||n>S.max) return W.textContent="範囲外の番号です（"+S.min+"〜"+S.max+"）";
+    if(drawn.includes(n)) return W.textContent=n+"番はもう出ています";
+    if(banned.includes(n)) return W.textContent=n+"番は出さない番号に入っています";
+    for(const kk in sched){ if(sched[kk]===n && +kk!==k) return W.textContent=n+"番はもう"+kk+"回目に決めています"; }
+    sched[k]=n; srev++; sendState(); W.textContent=""; $("scK").value=k+1; $("scN").value=""; drawSec();
+  };
+  $("bnAdd").onclick=()=>{
+    const n=parseInt($("bnN").value,10), W=$("bnW");
+    if(!isFinite(n)) return W.textContent="番号を入れてください";
+    if(n<S.min||n>S.max) return W.textContent="範囲外の番号です（"+S.min+"〜"+S.max+"）";
+    if(banned.includes(n)) return W.textContent="もう入っています";
+    for(const kk in sched){ if(sched[kk]===n) return W.textContent=n+"番は"+kk+"回目に出すと決めています"; }
+    banned.push(n); brev++; sendState(); W.textContent=""; $("bnN").value=""; drawSec(); render();
+  };
+  $("scClear").onclick=()=>{ sched={}; srev++; sendState(); drawSec(); };
+  $("scClose").onclick=()=>{ $("sec").hidden=true; };
+})();
+
+/* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
+const APP_VER="OLD";
+function checkUpdate(){
+  if(!/github\.io$/.test(location.hostname)) return;
+  fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
+    const m=t.match(/APP_VER="([^"]+)"/); if(m && m[1]!==APP_VER && !busy){ location.replace(location.pathname+"?v="+m[1]); }
+  }).catch(()=>{});
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); });
+setTimeout(checkUpdate,1500);
+
+})();
+</script>
+</body>
+</html>
