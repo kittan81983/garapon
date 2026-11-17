@@ -622,7 +622,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0020";
+const APP_VER="20261118-0030";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
@@ -650,10 +650,18 @@ document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
     for(const [sel,a,d] of LIST){ document.querySelectorAll(sel).forEach(el=>{ if(shown(el) && !el.classList.contains("closing")){ keep*=1-a; inDur=Math.max(inDur,d); } }); }
     const a=Math.round((1-keep)*1000)/1000; if(a===cur) return;
     const ov=document.getElementById("ov");
-    let dur, ease="linear";
-    if(a>cur){ dur=inDur; ease="ease"; } else if(ov && ov.classList.contains("closing")){ dur=+(ov.dataset.out||.5); } else dur=0;
-    cur=a; const w=Math.round(255*(1-a)), col=`rgb(${w},${w},${w})`;
-    for(const el of [root,body]){ el.style.transition=`background-color ${dur}s ${ease}`; el.style.backgroundColor=col; }
+    cur=a; paint(a);
+  }
+  // iPhoneはこの部分の色替えを1秒近く遅れて反映するので、切り替えはアニメなしで即座に指示する
+  let painted=-1;
+  function paint(a){ if(a===painted) return; painted=a; const w=Math.round(255*(1-a)), col=`rgb(${w},${w},${w})`;
+    for(const el of [root,body]){ el.style.transition="none"; el.style.backgroundColor=col; } }
+  // 抽選ボタンに指が触れた瞬間から先に暗くし始めて、遅れを少しでも縮める（押さずに指を離したら戻す）
+  const db=document.getElementById("btnDraw");
+  if(db){
+    db.addEventListener("touchstart",()=>{ if(!db.disabled && document.getElementById("ov").hidden) paint(.45); },{passive:true});
+    const back=()=>setTimeout(()=>{ const ov=document.getElementById("ov"); if(ov && ov.hidden) paint(cur); },400);
+    db.addEventListener("touchcancel",back,{passive:true}); db.addEventListener("touchend",back,{passive:true});
   }
   new MutationObserver(update).observe(body,{subtree:true,attributes:true,attributeFilter:["hidden","class"],childList:true});
   update();
