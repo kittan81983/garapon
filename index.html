@@ -622,7 +622,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0120";
+const APP_VER="20261118-0130";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
@@ -639,34 +639,25 @@ setInterval(()=>{ if(!document.hidden) checkUpdate(); },20000); // 開きっぱ�
 document.addEventListener("touchmove",function(e){ if(e.touches.length>1 || !e.target.closest || !e.target.closest("main,.sec,input,textarea,select")) e.preventDefault(); },{passive:false});
 document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
 </script>
-<script>/* iPhoneの一番下（ホームバーの所）はページの絵が描けず、背景色がそのまま出る。
-   iPhone 11 Proなど一部の機種はそこを「背景色」で塗るので、暗い幕が出ている間は背景色も同じ濃さにする */
+<script>/* iPhoneの一番下（ホームバーの所）はアプリが描けず、iPhoneが「背景色」で塗る。
+   暗い幕が出ている間は、幕の今の濃さ（ふわっと出る・消える途中も）を毎コマ計算して、その色で背景色を塗る */
 (function(){
-  const root=document.documentElement, body=document.body;
-  const LIST=[["#ov",.45,.15],[".sheet",.4,.2],["#cfm",.7,.2],[".fsheet",.35,.2],[".sdlg",.7,.2],["#sec",.914,0]];
-  let cur=0;
-  function shown(el){ return el && !el.hidden && getComputedStyle(el).display!=="none"; }
-  function update(){
-    let keep=1, inDur=0;
-    for(const [sel,a,d] of LIST){ document.querySelectorAll(sel).forEach(el=>{ if(shown(el) && !el.classList.contains("closing")){ keep*=1-a; inDur=Math.max(inDur,d); } }); }
-    const a=Math.round((1-keep)*1000)/1000; if(a===cur) return;
-    cur=a; paint(a);
+  const root=document.documentElement, body=document.body, SEL=".ov,.sheet,.cfm,.fsheet,.sdlg,.sec";
+  let run=false, idle=0, last="";
+  function tick(){
+    const els=[...document.querySelectorAll(SEL)].filter(el=>!el.hidden).map(el=>{ const cs=getComputedStyle(el); return {cs,z:parseInt(cs.zIndex)||0}; })
+      .filter(o=>o.cs.display!=="none").sort((a,b)=>a.z-b.z);
+    let r=255,g=255,b=255, any=false;
+    for(const {cs} of els){ const m=cs.backgroundColor.match(/rgba?\(([^)]+)\)/); if(!m) continue; const p=m[1].split(",").map(parseFloat);
+      const a=(p.length>3?p[3]:1)*(+cs.opacity); if(a<=0) continue; any=true; r=p[0]*a+r*(1-a); g=p[1]*a+g*(1-a); b=p[2]*a+b*(1-a); }
+    const col=`rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+    if(col!==last){ last=col; root.style.backgroundColor=col; body.style.backgroundColor=col; }
+    if(!any){ if(++idle>10){ run=false; return; } } else idle=0;
+    requestAnimationFrame(tick);
   }
-  // iPhoneはこの部分の色替えを1秒近く遅れて反映するので、切り替えはアニメなしで即座に指示する
-  let painted=-1;
-  function paint(a){ if(a===painted) return; painted=a; const w=Math.round(255*(1-a)), col=`rgb(${w},${w},${w})`;
-    for(const el of [root,body]){ el.style.transition="none"; el.style.backgroundColor=col; }
-    // 塗り直しを急がせる（高さを一瞬だけ変えて戻す）
-    root.style.minHeight="100.01%"; void root.offsetHeight; requestAnimationFrame(()=>{ root.style.minHeight=""; }); }
-  // 抽選ボタンに指が触れた瞬間から先に暗くし始めて、遅れを少しでも縮める（押さずに指を離したら戻す）
-  const db=document.getElementById("btnDraw");
-  if(db){
-    db.addEventListener("touchstart",()=>{ if(!db.disabled && document.getElementById("ov").hidden) paint(.45); },{passive:true});
-    const back=()=>setTimeout(()=>{ const ov=document.getElementById("ov"); if(ov && ov.hidden) paint(cur); },400);
-    db.addEventListener("touchcancel",back,{passive:true}); db.addEventListener("touchend",back,{passive:true});
-  }
-  new MutationObserver(update).observe(body,{subtree:true,attributes:true,attributeFilter:["hidden","class"],childList:true});
-  update();
+  function kick(){ if(!run){ run=true; idle=0; requestAnimationFrame(tick); } }
+  new MutationObserver(kick).observe(body,{subtree:true,attributes:true,attributeFilter:["hidden","class","style"],childList:true});
+  kick();
 })();
 </script>
 </body>
