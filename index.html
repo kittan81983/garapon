@@ -8,15 +8,15 @@
 <meta name="apple-mobile-web-app-title" content="抽選">
 <link rel="apple-touch-icon" href="icon.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:0}*,*::before,*::after{box-sizing:border-box}</style>
-<meta name="theme-color" content="#ff345b">
+<meta name="theme-color" content="#ff3e68">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 /* Layout: one-screen phone app — pink header with pill buttons, white sheet with slot grid, three round buttons at the bottom */
 :root{
-  --pink:#ff345b; --pill:#9a3045; --white:#ffffff; --cell:#f1f1f1; --hit:#fbe7ec;
-  --gray:#818183; --idx:#7c7c7e; --ink:#000000; --bulk:#fcd1db; --bulk-ink:#eb4168; --reset-ink:#393c43;
-  --card:#ffffff; --panel:#fc3458; --num:#ff3e68; --rim:#ffffff;
+  --pink:#ff3e68; --pill:#a43a51; --white:#ffffff; --cell:#f4f4f4; --hit:#ffebf0;
+  --gray:#8e8e93; --idx:#8e8e93; --ink:#000000; --bulk:#ffd8e1; --bulk-ink:#ff3e68; --reset-ink:#454b5b;
+  --card:#ffffff; --panel:#ff3e68; --num:#ff3e68; --rim:#ffffff;
   --font:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
   color-scheme:light;
 }
@@ -39,7 +39,7 @@ main{flex:1;overflow-y:auto;overscroll-behavior:contain;margin-top:16.7px;paddin
 .cell{position:relative;height:78.3px;max-width:100%;background:var(--cell);border-radius:10px;display:grid;place-items:center;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",var(--font);font-weight:900;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
 .cell small{position:absolute;top:4px;left:4px;font-family:var(--font);font-size:11px;font-weight:400;color:var(--idx)}
 .cell span{margin-top:6px}
-.cell .q{color:#7d7d7d;font-weight:800;font-size:22px}
+.cell .q{color:#8e8e93;font-weight:800;font-size:22px}
 .cell.filled{background:var(--hit)}
 .cell.hit{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
@@ -53,7 +53,7 @@ main{flex:1;overflow-y:auto;overscroll-behavior:contain;margin-top:16.7px;paddin
 button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 
 /* overlay */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;opacity:1;transition:opacity .15s}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;opacity:1;transition:opacity .15s}
 
 .ov.pre{opacity:0}
 .stage{position:absolute;left:50%;top:51.4%;transform:translate(-50%,-50%);width:min(92.7vw,480px);aspect-ratio:1;max-width:100%;border-radius:17px;overflow:hidden;background:var(--panel)}
@@ -121,7 +121,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .seg2 button{border:0;border-radius:14px;background:transparent;font:800 13px -apple-system,"Hiragino Sans",sans-serif;color:#000;cursor:pointer}
 .seg2 button.on{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .opt{margin:58px 20px 0;height:69px;border-radius:24px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 18px;font:800 14px -apple-system,"Hiragino Sans",sans-serif;color:#3d4350}
-.opt .ck{width:14px;height:8px;border-left:3.5px solid #ff345b;border-bottom:3.5px solid #ff345b;transform:rotate(-50deg) translate(2px,-3px);border-radius:1px}
+.opt .ck{width:14px;height:8px;border-left:3.5px solid #ff3e68;border-bottom:3.5px solid #ff3e68;transform:rotate(-50deg) translate(2px,-3px);border-radius:1px}
 @keyframes slideup{from{transform:translateY(100%)}}
 @keyframes fadein{from{opacity:0}}
 /* ---- settings dialog (gear) ---- */
@@ -129,13 +129,13 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .sdlg .box{position:absolute;left:50%;top:51%;transform:translate(-50%,-50%);width:min(72.7vw,330px);background:#fff;border-radius:12px;overflow:hidden;animation:cfmin .2s ease-out;font-family:-apple-system,"Hiragino Sans",sans-serif}
 .sdlg h3{margin:0;height:49px;display:grid;place-items:center;font:800 15px -apple-system,"Hiragino Sans",sans-serif;border-bottom:1px solid #ececec}
 .sdlg .r{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-weight:800;font-size:11.5px;color:#111;border-bottom:1px solid #f0f0f0}
-.sdlg .r .v{color:#ff345b}
+.sdlg .r .v{color:#ff3e68}
 .sdlg .lk{height:50px;display:grid;place-items:center;font-weight:800;font-size:11.5px;color:#111;border-bottom:1px solid #f0f0f0;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%}
 .sdlg .lk:last-child{border-bottom:0}
 .sdlg .lk.red{color:#ff383c}
 .tg{width:62px;height:31px;border-radius:16px;background:#e5e5ea;position:relative;border:0;cursor:pointer;transition:background .2s;flex:none}
 .tg::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
-.tg.on{background:#ff345b}
+.tg.on{background:#ff3e68}
 .tg.on::after{left:33px}
 /* ---- event list screen (✕) ---- */
 .evl{position:fixed;inset:0;z-index:34;background:#f3f3f3;display:flex;flex-direction:column;animation:fadein .15s}
@@ -157,6 +157,22 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 /* iOS 26 のホーム画面アプリでは画面下（ステータスバーと同じ高さ）が描けない不具合がある。
    そのときは広告の下の余白をなくして、描ける範囲のいちばん下に広告を置く */
 .vpshort .adwrap{padding-bottom:0!important}
+/* iOS 18以前の見た目（元アプリはガラスの丸い背景なし・線が細め・ヘッダーが低い） */
+.classic header{padding-block:3.5px;padding-left:6px;padding-right:6.2px}
+.classic .pill{background:none}
+.classic #btnShuffle{width:57px!important;padding-left:0!important}
+.classic #btnSettings{width:47px!important;padding-left:0!important}
+.classic #btnSort{margin-right:4px}
+.classic #btnClose svg{stroke-width:2.5px}
+.classic #btnSort svg{stroke-width:2.3px}
+.classic #btnShuffle svg{transform:translateY(1px) scale(.97)}
+.classic .cell{font-size:20px}
+.classic .cell .q{font-size:25.7px;transform:translateY(1.5px)}
+.classic .cell small{font-size:12px}
+.classic .sub{font-size:15px}
+.classic .draw{font-size:22px}
+.classic.vpshort .adwrap.none{padding-bottom:max(0px,calc(46px + env(safe-area-inset-bottom,0px) - var(--miss,0px)))!important}
+
 /* 抽選パネルや確認画面は、本物と同じく「画面全体」の高さを基準に置く */
 .vpshort .stage,.vpshort .cfm .box{top:calc((100% + var(--miss,0px)) * .514)!important}
 .vpshort .sdlg .box{top:calc((100% + var(--miss,0px)) * .51)!important}
@@ -168,7 +184,7 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .sec .lbl{font-size:12px;color:#8b8b96;margin-bottom:8px}
 .sec .in{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sec input{width:84px;font:700 20px -apple-system,sans-serif;padding:8px 10px;border-radius:10px;border:1px solid #333;background:#2c2c34;color:#fff;text-align:center}
-.sec .add{height:44px;padding:0 16px;border:0;border-radius:10px;background:#ff345b;color:#fff;font:700 15px -apple-system,sans-serif}
+.sec .add{height:44px;padding:0 16px;border:0;border-radius:10px;background:#ff3e68;color:#fff;font:700 15px -apple-system,sans-serif}
 .sec .add.ban{background:#b8892a}
 .sec .warn{color:#ff8a9b;font-size:12px;min-height:16px;margin-top:6px}
 .sec .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -178,11 +194,12 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .sec .none{color:#8b8b96;font-size:13px}
 .sec .row2{display:flex;gap:8px;margin-top:6px}
 .sec .row2 button{flex:1;height:46px;border-radius:12px;border:1px solid #333;background:#2c2c34;color:#fff;font:700 15px -apple-system,sans-serif}
-.sec .close{background:#ff345b!important;border-color:#ff345b!important}
+.sec .close{background:#ff3e68!important;border-color:#ff3e68!important}
 .sec .dbg{font:11px/1.5 monospace;color:#5c5c66;white-space:pre-wrap;margin-top:14px}
 @media (prefers-reduced-motion:reduce){.cell.hit,.num.show{animation:none}}
 </style>
 
+<script>(function(){var m=navigator.userAgent.match(/OS (\d+)_/);if(m&&+m[1]<26)document.documentElement.classList.add("classic");})();</script>
 <script>(function(){function f(){var r=document.documentElement,sh=false;try{var st=navigator.standalone||matchMedia("(display-mode: standalone)").matches,por=innerHeight>innerWidth;sh=st&&por&&(screen.height-innerHeight)>20;}catch(e){}r.classList.toggle("vpshort",sh);r.style.setProperty("--miss",(sh?screen.height-innerHeight:0)+"px");}f();addEventListener("resize",f);addEventListener("orientationchange",function(){setTimeout(f,300)});})();</script>
 </head>
 <body>
@@ -373,7 +390,7 @@ function fit(){
   SW=innerWidth; SH=cf.getBoundingClientRect().height||innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
   const sb=$("stage").getBoundingClientRect(), cb=cf.getBoundingClientRect(); panelBox={x:sb.left-cb.left,y:sb.top-cb.top,w:sb.width,h:sb.height};
 }
-const COLORS=["#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#fe82c6","#fe82c6"]; // 実機は5色×2個＝10個
+const COLORS=["#00a7db","#00a7db","#005299","#005299","#fecc00","#fecc00","#39ff00","#39ff00","#fe8dcc","#fe8dcc"]; // 実機は5色×2個＝10個
 let balls=[], angle=0, spin=0, lastShuffle=0;
 // 実機と同じ動き: 玉は物理計算せず、0.1秒ごとに中の並びがパッと入れ替わる（これが「震え」に見える）
 const BR=.211, INNER=.745;
@@ -642,7 +659,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0150";
+const APP_VER="20261118-0210";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
@@ -655,6 +672,7 @@ setInterval(()=>{ if(!document.hidden) checkUpdate(); },20000); // 開きっぱ�
 
 })();
 </script>
+<script>if(document.documentElement.classList.contains("classic")){ document.querySelectorAll("#btnShuffle rect").forEach((r,i)=>{ if(i<3){ r.setAttribute("height","1.7"); r.setAttribute("rx",".85"); r.setAttribute("y",String(+r.getAttribute("y")+.25)); } }); }</script>
 <script>/* 画面が引っぱられて動かないように（スクロールはマスの所と設定画面だけ） */
 document.addEventListener("touchmove",function(e){ if(e.touches.length>1 || !e.target.closest || !e.target.closest("main,.sec,input,textarea,select")) e.preventDefault(); },{passive:false});
 document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
