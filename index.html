@@ -34,7 +34,7 @@ header h1{flex:1;text-align:center;font-size:15px;font-weight:800;margin:0;color
 .ib:focus-visible{outline:2px solid #fff;outline-offset:-3px}
 .ib svg{flex:none}
 .sheet-w{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--white);border-radius:12px 12px 0 0}
-main{flex:1;overflow-y:auto;padding-block:16.7px;padding-left:max(16.7px,env(safe-area-inset-left,0px));padding-right:max(16.7px,env(safe-area-inset-right,0px))}
+main{flex:1;overflow-y:auto;margin-top:16.7px;padding-block:0 16.7px;padding-left:max(16.7px,env(safe-area-inset-left,0px));padding-right:max(16.7px,env(safe-area-inset-right,0px))}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11.7px 9.3px}
 .cell{position:relative;height:78.3px;max-width:100%;background:var(--cell);border-radius:10px;display:grid;place-items:center;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",var(--font);font-weight:900;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
 .cell small{position:absolute;top:4px;left:4px;font-family:var(--font);font-size:11px;font-weight:400;color:var(--idx)}
@@ -190,12 +190,12 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
   <header>
     <div class="pill">
       <button class="ib" id="btnClose" aria-label="閉じる" style="width:43px"><svg style="width:18px;height:18px" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M2 2l14 14M16 2L2 16"/></svg></button>
-      <button class="ib" id="btnShuffle" aria-label="並び替え" style="width:59.3px;padding-left:10px"><svg style="width:22px;height:22px" viewBox="0 0 22 22" fill="currentColor"><rect x="0" y="4" width="11" height="2.4" rx="1.2"/><rect x="0" y="8.8" width="11" height="2.4" rx="1.2"/><rect x="0" y="13.6" width="7.5" height="2.4" rx="1.2"/><path d="M15.2 1.2h2.6v15.3a3.9 3.9 0 1 1-2.6-3.7z"/><path d="M17.8 1.2c1 1.4 2.4 1.9 3.6 1.7v2.7c-1.4.2-2.6-.2-3.6-.9z"/></svg></button>
+      <button class="ib" id="btnShuffle" aria-label="並び替え" style="width:59.3px;padding-left:10px"><svg style="width:23px;height:22.4px" viewBox="0 0 23 22.4" fill="currentColor"><rect x="0" y="3.5" width="11" height="2.2" rx="1.1"/><rect x="0" y="7.5" width="11" height="2.2" rx="1.1"/><rect x="0" y="11.5" width="11" height="2.2" rx="1.1"/><rect x="14.3" y="1.6" width="2.7" height="17.5"/><path d="M14.3 2.5Q14.3 1.5 15.3 1.3L21.6.1Q23 -.1 23 1.3V4.9Q23 5.8 22.1 6L17 7.1Z"/><ellipse cx="12.7" cy="18.9" rx="4.4" ry="3.35" transform="rotate(-22 12.7 18.9)"/></svg></button>
     </div>
     <h1 id="title">11/5オリパ</h1>
     <div class="pill r">
       <button class="ib" id="btnSort" aria-label="順番" style="width:52px"><svg style="width:26px;height:21px" viewBox="0 0 26 21" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 19.4V1.8M1.8 7.5l5.7-5.7 5.7 5.7M18.5 1.6v17.6M12.8 13.5l5.7 5.7 5.7-5.7"/></svg></button>
-      <button class="ib" id="btnSettings" aria-label="設定" style="width:59px;padding-left:10px"><svg style="width:29px;height:29px" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.1 0.6h3.8l.6 3c.8.3 1.5.7 2.2 1.3l2.9-1 1.9 3.3-2.3 2c.1.9.1 1.7 0 2.6l2.3 2-1.9 3.3-2.9-1c-.7.5-1.4 1-2.2 1.3l-.6 3h-3.8l-.6-3c-.8-.3-1.5-.7-2.2-1.3l-2.9 1-1.9-3.3 2.3-2c-.1-.9-.1-1.7 0-2.6l-2.3-2 1.9-3.3 2.9 1c.7-.5 1.4-1 2.2-1.3zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg></button>
+      <button class="ib" id="btnSettings" aria-label="設定" style="width:59px;padding-left:10px"><svg style="width:24px;height:24px" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" fill-rule="evenodd"><path d="M9.62 5.10 L10.43 1.52 L13.57 1.52 L14.38 5.10 L15.20 5.44 L18.31 3.48 L20.52 5.69 L18.56 8.80 L18.90 9.62 L22.48 10.43 L22.48 13.57 L18.90 14.38 L18.56 15.20 L20.52 18.31 L18.31 20.52 L15.20 18.56 L14.38 18.90 L13.57 22.48 L10.43 22.48 L9.62 18.90 L8.80 18.56 L5.69 20.52 L3.48 18.31 L5.44 15.20 L5.10 14.38 L1.52 13.57 L1.52 10.43 L5.10 9.62 L5.44 8.80 L3.48 5.69 L5.69 3.48 L8.80 5.44ZM17.1 12a5.1 5.1 0 1 0 -10.2 0a5.1 5.1 0 1 0 10.2 0Z"/></svg></button>
     </div>
   </header>
   <div class="sheet-w">
@@ -618,7 +618,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261117-2230";
+const APP_VER="20261117-2300";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
