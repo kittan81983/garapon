@@ -373,19 +373,19 @@ function fit(){
   SW=innerWidth; SH=cf.getBoundingClientRect().height||innerHeight; cf.width=SW*DPR; cf.height=SH*DPR; fx.setTransform(DPR,0,0,DPR,0,0);
   const sb=$("stage").getBoundingClientRect(), cb=cf.getBoundingClientRect(); panelBox={x:sb.left-cb.left,y:sb.top-cb.top,w:sb.width,h:sb.height};
 }
-const COLORS=["#009dd6","#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#2eff00","#fe82c6","#fe82c6"];
+const COLORS=["#009dd6","#009dd6","#00468e","#00468e","#fec600","#fec600","#2eff00","#2eff00","#fe82c6","#fe82c6"]; // 実機は5色×2個＝10個
 let balls=[], angle=0, spin=0, lastShuffle=0;
 // 実機と同じ動き: 玉は物理計算せず、0.1秒ごとに中の並びがパッと入れ替わる（これが「震え」に見える）
 const BR=.211, INNER=.745;
 function initBalls(){
-  // 実機の録画をコマ送りで測った分布：玉は枠からはみ出さず、毎回「上寄り〜下にたまる」までランダムに偏る。少し重なる
-  const kk=-2.2+Math.random()*7.7;
+  // 実機の録画をコマ送りで測った分布：玉は10個、枠からはみ出さず、毎回「上寄り〜下にたまる」までランダムに偏る。重なりはほぼなし
+  const kk=-4.5+Math.random()*15.5;
   balls=[];
   for(const c of COLORS.slice().sort(()=>Math.random()-.5)){ let best=null, bestD=-1;
-    for(let k=0;k<80;k++){ let x,y,g=0;
-      do{ const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*INNER; x=Math.cos(a)*r; y=Math.sin(a)*r; }while(++g<200 && Math.random()>Math.exp(kk*y-Math.abs(kk)*INNER));
+    for(let k=0;k<300;k++){ let x,y,g=0;
+      do{ const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*INNER; x=Math.cos(a)*r; y=Math.sin(a)*r; }while(++g<3000 && Math.random()>Math.exp(kk*y-Math.abs(kk)*INNER));
       let md=9; for(const o of balls) md=Math.min(md,Math.hypot(o.x-x,o.y-y));
-      if(md>BR){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
+      if(md>BR*1.9){ best={x,y}; break; } if(md>bestD){ bestD=md; best={x,y}; } }
     balls.push({x:best.x,y:best.y,c}); }
 }
 // 実機の「震え」: ガラポン全体が0.1秒周期で右下へ約2pt動いて戻る（玉の入れ替えと同じ周期）
@@ -621,7 +621,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261117-2350";
+const APP_VER="20261117-2359";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
