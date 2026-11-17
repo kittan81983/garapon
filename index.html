@@ -21,7 +21,7 @@
   color-scheme:light;
 }
 [hidden]{display:none!important}
-html{height:100%;overscroll-behavior:none;box-sizing:border-box;background:linear-gradient(var(--pink) 0 50%,var(--white) 50% 100%) fixed}
+html{height:100%;box-sizing:border-box;background:linear-gradient(var(--pink) 0 50%,var(--white) 50% 100%) fixed}
 body{height:100%;margin:0}
 body{background:var(--white);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--pink)}
@@ -622,7 +622,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0030";
+const APP_VER="20261118-0040";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
@@ -637,35 +637,6 @@ setTimeout(checkUpdate,1500);
 <script>/* 画面が引っぱられて動かないように（スクロールはマスの所と設定画面だけ） */
 document.addEventListener("touchmove",function(e){ if(e.touches.length>1 || !e.target.closest || !e.target.closest("main,.sec,input,textarea,select")) e.preventDefault(); },{passive:false});
 document.addEventListener("gesturestart",function(e){ e.preventDefault(); });
-</script>
-<script>/* iPhoneの一番下（ホームバーの所）はページの絵が描けず、背景色がそのまま出る。
-   暗い幕が出ている間は、その背景色も幕と同じ速さ・同じ濃さで暗くする（毎コマ書き換えるとiPhoneが遅れるので、CSSの切り替えアニメで合わせる） */
-(function(){
-  const root=document.documentElement, body=document.body;
-  const LIST=[["#ov",.45,.15],[".sheet",.4,.2],["#cfm",.7,.2],[".fsheet",.35,.2],[".sdlg",.7,.2]];
-  let cur=0;
-  function shown(el){ return el && !el.hidden && getComputedStyle(el).display!=="none"; }
-  function update(){
-    let keep=1, inDur=0;
-    for(const [sel,a,d] of LIST){ document.querySelectorAll(sel).forEach(el=>{ if(shown(el) && !el.classList.contains("closing")){ keep*=1-a; inDur=Math.max(inDur,d); } }); }
-    const a=Math.round((1-keep)*1000)/1000; if(a===cur) return;
-    const ov=document.getElementById("ov");
-    cur=a; paint(a);
-  }
-  // iPhoneはこの部分の色替えを1秒近く遅れて反映するので、切り替えはアニメなしで即座に指示する
-  let painted=-1;
-  function paint(a){ if(a===painted) return; painted=a; const w=Math.round(255*(1-a)), col=`rgb(${w},${w},${w})`;
-    for(const el of [root,body]){ el.style.transition="none"; el.style.backgroundColor=col; } }
-  // 抽選ボタンに指が触れた瞬間から先に暗くし始めて、遅れを少しでも縮める（押さずに指を離したら戻す）
-  const db=document.getElementById("btnDraw");
-  if(db){
-    db.addEventListener("touchstart",()=>{ if(!db.disabled && document.getElementById("ov").hidden) paint(.45); },{passive:true});
-    const back=()=>setTimeout(()=>{ const ov=document.getElementById("ov"); if(ov && ov.hidden) paint(cur); },400);
-    db.addEventListener("touchcancel",back,{passive:true}); db.addEventListener("touchend",back,{passive:true});
-  }
-  new MutationObserver(update).observe(body,{subtree:true,attributes:true,attributeFilter:["hidden","class"],childList:true});
-  update();
-})();
 </script>
 </body>
 </html>
