@@ -49,6 +49,14 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);-webk
 .seg button.on{background:#44444f;color:var(--fg)}
 .seg button.on.ban{background:#5a4a1f;color:#ffd98a}
 .k.add.ban{background:#b8892a}
+.sch{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sch input{width:76px;font:700 20px var(--font);padding:8px;border-radius:10px;border:1px solid var(--line);background:#2c2c34;color:var(--fg);text-align:center}
+.sch span{font-size:14px;color:var(--dim)}
+.sch .btn{height:44px;padding:0 14px;background:var(--pink);border-color:var(--pink);flex:1;min-width:70px}
+.scw{color:#ff8a9b;font-size:12px;font-weight:700;min-height:16px}
+.scs{font-size:13px;font-weight:700}
+.scs.ok{color:var(--ok)} .scs.ng{color:var(--warn)}
+.chip.done{opacity:.4;text-decoration:line-through}
 .k.add:disabled{opacity:.35;cursor:not-allowed}
 .entry .warn{color:#ff8a9b;font-weight:700;text-align:right;max-width:60%}
 .chip.ban{background:#3a3220;color:#ffe2a8;border-color:#5c4c25;text-decoration:line-through}
@@ -94,6 +102,15 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
     <div class="queue banq" id="banq"><span class="none">除外なし</span></div>
   </div>
 
+  <div class="card">
+    <div class="lbl">何回目に何番を出すか（先に送っておけば、表示側は機内モードでもOK）</div>
+    <div class="sch"><input id="scK" type="number" inputmode="numeric" placeholder="回目"><span>回目に</span><input id="scN" type="number" inputmode="numeric" placeholder="番号"><span>番</span><button class="btn" id="scAdd">決める</button></div>
+    <div class="scw" id="scW"></div>
+    <div class="queue" id="schq"><span class="none">まだありません</span></div>
+    <div class="scs" id="scS"></div>
+    <button class="btn" id="scClear" style="width:100%">回の設定を全部消す</button>
+  </div>
+
   <div class="row">
     <button class="btn" id="bClose" style="grid-column:1/-1">結果を閉じる</button>
     <button class="btn" id="bClear">予約を全部消す</button>
@@ -126,9 +143,9 @@ const me=Math.random().toString(36).slice(2,9);
 const gen=()=>{ const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; };
 let room=""; try{ room=localStorage.getItem("garapon-ctl-room")||""; }catch(e){}
 if(!room){ room=gen(); try{localStorage.setItem("garapon-ctl-room",room);}catch(e){} }
-let es=null, lastSeen=0, state=null, queue=[], banned=[], qrev=0, brev=0, entry="", mode="q", lastEvt=Date.now();
-function saveLocal(){ try{ localStorage.setItem("garapon-ctl-lists-"+room,JSON.stringify({queue,banned,qrev,brev})); }catch(e){} }
-function loadLocal(){ queue=[];banned=[];qrev=0;brev=0; try{ const v=JSON.parse(localStorage.getItem("garapon-ctl-lists-"+room)||"{}"); queue=v.queue||[]; banned=v.banned||[]; qrev=v.qrev||0; brev=v.brev||0; }catch(e){} }
+let es=null, lastSeen=0, state=null, queue=[], banned=[], qrev=0, brev=0, sched={}, srev=0, entry="", mode="q", lastEvt=Date.now();
+function saveLocal(){ try{ localStorage.setItem("garapon-ctl-lists-"+room,JSON.stringify({queue,banned,qrev,brev,sched,srev})); }catch(e){} }
+function loadLocal(){ queue=[];banned=[];qrev=0;brev=0;sched={};srev=0; try{ const v=JSON.parse(localStorage.getItem("garapon-ctl-lists-"+room)||"{}"); queue=v.queue||[]; banned=v.banned||[]; qrev=v.qrev||0; brev=v.brev||0; sched=v.sched||{}; srev=v.srev||0; }catch(e){} }
 loadLocal();
 
 function topic(){ return "garapon-v1-"+room.toLowerCase(); }
@@ -144,10 +161,12 @@ function connect(){
       const dq=m.qrev||0, db=m.brev||0;
       if(dq>=qrev){ queue=(m.queue||[]).slice(); qrev=dq; } else send({t:"queue",queue,qrev});
       if(db>=brev){ banned=(m.banned||[]).slice(); brev=db; } else send({t:"ban",banned,brev});
+      const ds=m.srev||0; if(ds>=srev){ sched=Object.assign({},m.sched||{}); srev=ds; } else send({t:"sched",sched,srev});
       saveLocal(); render(); } }catch(_){} };
 }
 function send(m){ m.from=me; m.at=Date.now(); return fetch("https://ntfy.sh/"+topic(),{method:"POST",body:JSON.stringify(m)}).catch(()=>{}); }
 function pushQueue(){ qrev++; saveLocal(); render(); send({t:"queue",queue,qrev}); }
+function pushSched(){ srev++; saveLocal(); render(); send({t:"sched",sched,srev}); }
 function pushBan(){ brev++; saveLocal(); render(); send({t:"ban",banned,brev}); }
 
 // 入力できない番号の理由（なければ空）
@@ -160,11 +179,22 @@ function problem(n){
     if(state && queue.length >= state.slots-state.drawn.length) return "残りのマスより多くは予約できません";
   } else {
     if(banned.includes(n)) return "もう除外に入っています";
+    for(const kk in sched){ if(sched[kk]===n) return n+"番は"+kk+"回目に出すと決めています"; }
     if(queue.includes(n)) return "予約に入っている番号です（先に予約から消してください）";
   }
   return "";
 }
+function renderSched(){
+  const L=$("schq"); L.innerHTML="";
+  const ks=Object.keys(sched).map(Number).sort((a,b)=>a-b), done=state?state.drawn.length:0;
+  if(!ks.length) L.innerHTML='<span class="none">まだありません</span>';
+  ks.forEach(k=>{ const c=document.createElement("button"); c.className="chip"+(k<=done?" done":""); c.textContent=k+"回目 → "+sched[k]; c.onclick=()=>{ delete sched[k]; pushSched(); }; L.appendChild(c); });
+  const S=$("scS"); const ok=state && (state.srev||0)>=srev;
+  S.className="scs "+(ok?"ok":"ng");
+  S.textContent = !ks.length && srev===0 ? "" : ok ? "✓ 表示側に届いています（機内モードにしても大丈夫）" : "まだ表示側に届いていません（表示側を開いて通信をつないでください）";
+}
 function render(){
+  renderSched();
   const v=$("val"); if(entry){ v.textContent=entry; v.classList.remove("empty"); } else { v.textContent="番号を入力"; v.classList.add("empty"); }
   const w=entry?problem(Number(entry)):"";
   $("addKey").textContent = mode==="q" ? "予約" : "除外"; $("addKey").classList.toggle("ban",mode==="b");
@@ -196,6 +226,21 @@ $("pad").addEventListener("click",e=>{ const b=e.target.closest(".k"); if(!b) re
   render(); });
 
 $("bClose").onclick=()=>send({t:"close"});
+$("scAdd").onclick=()=>{
+  const k=parseInt($("scK").value,10), n=parseInt($("scN").value,10), W=$("scW"), done=state?state.drawn.length:0;
+  if(!(k>=1)) return W.textContent="何回目かを入れてください";
+  if(!isFinite(n)) return W.textContent="番号を入れてください";
+  if(state){
+    if(k<=done) return W.textContent=k+"回目はもう出ています（次は"+(done+1)+"回目）";
+    if(k>state.slots) return W.textContent="マスは"+state.slots+"個までです";
+    if(n<state.min||n>state.max) return W.textContent="範囲外の番号です（"+state.min+"〜"+state.max+"）";
+    if(state.drawn.includes(n)) return W.textContent=n+"番はもう出ています";
+  }
+  if(banned.includes(n)) return W.textContent=n+"番は出さない番号に入っています";
+  for(const kk in sched){ if(sched[kk]===n && +kk!==k) return W.textContent=n+"番はもう"+kk+"回目に決めています"; }
+  sched[k]=n; W.textContent=""; $("scK").value=k+1; $("scN").value=""; pushSched();
+};
+$("scClear").onclick=()=>{ sched={}; pushSched(); };
 $("bClear").onclick=()=>{ queue=[]; pushQueue(); };
 $("bClearBan").onclick=()=>{ banned=[]; pushBan(); };
 $("seg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; mode=b.dataset.m; render(); });

@@ -299,9 +299,9 @@ try { Object.assign(S, JSON.parse(localStorage.getItem("garapon-settings")||"{}"
 let drawn = [];
 try{ const dv=JSON.parse(localStorage.getItem("garapon-drawn")||"[]"); if(Array.isArray(dv)) drawn=dv.map(Number).filter(n=>isFinite(n)); }catch(e){}
 let busy = false;
-let queue = [], banned = [], qrev = 0, brev = 0, sched = {};
-try{ const sv=JSON.parse(localStorage.getItem("garapon-secret")||"{}"); queue=sv.queue||[]; banned=sv.banned||[]; qrev=sv.qrev||0; brev=sv.brev||0; sched=sv.sched||{}; }catch(e){}
-function saveSecret(){ try{ localStorage.setItem("garapon-secret",JSON.stringify({queue,banned,qrev,brev,sched})); }catch(e){} }
+let queue = [], banned = [], qrev = 0, brev = 0, sched = {}, srev = 0;
+try{ const sv=JSON.parse(localStorage.getItem("garapon-secret")||"{}"); queue=sv.queue||[]; banned=sv.banned||[]; qrev=sv.qrev||0; brev=sv.brev||0; sched=sv.sched||{}; srev=sv.srev||0; }catch(e){}
+function saveSecret(){ try{ localStorage.setItem("garapon-secret",JSON.stringify({queue,banned,qrev,brev,sched,srev})); }catch(e){} }
 
 /* ---------- 操作側との連携（ntfy.sh 経由） ---------- */
 const me=Math.random().toString(36).slice(2,9);
@@ -325,12 +325,13 @@ function connect(){
 }
 setInterval(()=>{ if(!document.hidden && Date.now()-lastEvt>70000) connect(); },15000);
 function send(m){ if(!room) return; m.from=me; m.at=Date.now(); fetch("https://ntfy.sh/"+topic(),{method:"POST",body:JSON.stringify(m)}).catch(()=>{}); }
-function sendState(){ saveSecret(); send({t:"state", drawn, queue, banned, qrev, brev, min:S.min, max:S.max, slots:S.slots, busy, open:!document.getElementById("ov").hidden}); }
+function sendState(){ saveSecret(); send({t:"state", drawn, queue, banned, qrev, brev, sched, srev, min:S.min, max:S.max, slots:S.slots, busy, open:!document.getElementById("ov").hidden}); }
 function setRoom(r){ room=r; try{localStorage.setItem("garapon-room",room);}catch(e){} connect(); }
 function onRemote(m){
   // 予約・除外は「番号（rev）」が新しいときだけ反映する。古い内容で上書きされない
   if(m.t==="hello"){ sendState(); return; }
   if(m.t==="queue"){ if((m.qrev||0)>qrev){ queue=(m.queue||[]).map(Number).filter(n=>isFinite(n)); qrev=m.qrev; render(); } sendState(); return; }
+  if(m.t==="sched"){ if((m.srev||0)>srev){ sched={}; for(const k in (m.sched||{})){ const n=Number(m.sched[k]); if(isFinite(n)) sched[k]=n; } srev=m.srev; saveSecret(); } sendState(); return; }
   if(m.t==="ban"){ if((m.brev||0)>brev){ banned=(m.banned||[]).map(Number).filter(n=>isFinite(n)); brev=m.brev; render(); } sendState(); return; }
   // 抽選などの操作は、時間がたったもの（つながっていなかった間の分）は実行しない
   if(m.at && Math.abs(Date.now()-m.at)>15000) return;
@@ -585,7 +586,7 @@ connect();
     const L=$("scList"); L.innerHTML="";
     const ks=Object.keys(sched).map(Number).sort((a,b)=>a-b);
     if(!ks.length) L.innerHTML='<span class="none">まだありません</span>';
-    ks.forEach(k=>{ const b=document.createElement("button"); b.className="chip"+(k<=drawn.length?" done":""); b.textContent=k+"回目 → "+sched[k]; b.onclick=()=>{ delete sched[k]; saveSecret(); drawSec(); }; L.appendChild(b); });
+    ks.forEach(k=>{ const b=document.createElement("button"); b.className="chip"+(k<=drawn.length?" done":""); b.textContent=k+"回目 → "+sched[k]; b.onclick=()=>{ delete sched[k]; srev++; sendState(); drawSec(); }; L.appendChild(b); });
     const B=$("bnList"); B.innerHTML="";
     if(!banned.length) B.innerHTML='<span class="none">まだありません</span>';
     banned.slice().sort((a,b)=>a-b).forEach(n=>{ const b=document.createElement("button"); b.className="chip b"; b.textContent=n; b.onclick=()=>{ banned=banned.filter(x=>x!==n); brev++; sendState(); drawSec(); render(); }; B.appendChild(b); });
@@ -602,7 +603,7 @@ connect();
     if(drawn.includes(n)) return W.textContent=n+"番はもう出ています";
     if(banned.includes(n)) return W.textContent=n+"番は出さない番号に入っています";
     for(const kk in sched){ if(sched[kk]===n && +kk!==k) return W.textContent=n+"番はもう"+kk+"回目に決めています"; }
-    sched[k]=n; saveSecret(); W.textContent=""; $("scK").value=k+1; $("scN").value=""; drawSec();
+    sched[k]=n; srev++; sendState(); W.textContent=""; $("scK").value=k+1; $("scN").value=""; drawSec();
   };
   $("bnAdd").onclick=()=>{
     const n=parseInt($("bnN").value,10), W=$("bnW");
@@ -612,12 +613,12 @@ connect();
     for(const kk in sched){ if(sched[kk]===n) return W.textContent=n+"番は"+kk+"回目に出すと決めています"; }
     banned.push(n); brev++; sendState(); W.textContent=""; $("bnN").value=""; drawSec(); render();
   };
-  $("scClear").onclick=()=>{ sched={}; saveSecret(); drawSec(); };
+  $("scClear").onclick=()=>{ sched={}; srev++; sendState(); drawSec(); };
   $("scClose").onclick=()=>{ $("sec").hidden=true; };
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261117-1500";
+const APP_VER="20261117-2230";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
