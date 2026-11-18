@@ -49,7 +49,7 @@ main{flex:1;overflow-y:auto;overscroll-behavior:contain;margin-top:16.7px;paddin
 .reset{background:var(--cell);color:var(--reset-ink)}
 .draw{width:min(31.8vw,140px);height:min(31.8vw,140px);border-radius:50%;border:0;background:var(--pink);color:#fff;font:800 19px var(--font);cursor:pointer;padding:0;transition:filter .08s}
 .sub:active,.draw:active{filter:brightness(.95)}
-.draw:disabled{opacity:.5}
+
 button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 
 /* overlay */
@@ -102,6 +102,12 @@ button:focus-visible{outline:3px solid var(--pill);outline-offset:3px}
 .cfm button{height:40px;border:0;border-radius:9px;font:800 11px -apple-system,"Hiragino Sans",sans-serif;letter-spacing:.05em;cursor:pointer}
 .cfm .cn{background:#f4f4f4;color:#8e8e93}
 .cfm .ok2{background:#ffd8e0;color:#ff3e68}
+/* 1ボタンのお知らせ（全部回し切ったあとに抽選を押したとき） */
+.cfm.one h3{color:#000}
+.cfm.one p{display:block;flex:1;text-align:left;font-weight:400;font-size:12.6px;line-height:1.7;padding:40px 0 0 14px;letter-spacing:0}
+.cfm.one .bt{grid-template-columns:1fr;padding:0 21px 6px}
+.cfm.one .bt button{height:46px;font-size:13px}
+.cfm.one .cn{display:none}
 @keyframes cfmbg{from{background:rgba(0,0,0,0)}}
 @keyframes cfmin{from{opacity:0;transform:translate(-50%,-50%) scale(1.08)}}
 /* ---- sort menu (↑↓) ---- */
@@ -377,7 +383,6 @@ function render(){
     if(disp[i]!=null){ c.classList.add("filled"); c.dataset.n=disp[i]; }
     g.appendChild(c);
   }
-  $("btnDraw").disabled = (pool().length===0 && !queue.length) || drawn.length>=S.slots;
 }
 function markHit(i){ const c=$("grid").querySelector(`.cell[data-n="${drawn[i]}"]`); if(c){ c.classList.add("hit"); c.scrollIntoView({block:"nearest",behavior:"smooth"}); } }
 
@@ -515,7 +520,7 @@ async function drawOne(fast){
   await runDraw(n, fast, ()=>{ drawn.push(n); render(); markHit(drawn.length-1); });
   sendState(); return true;
 }
-$("btnDraw").onclick=async()=>{ if(busy) return; busy=true; await drawOne(false); busy=false; };
+$("btnDraw").onclick=async()=>{ if(busy) return; if(exhausted()){ noMoreBox(); return; } busy=true; await drawOne(false); busy=false; };
 // 一括抽選: 確認 → ガラポンが1回回る → 消えたら残りのマスが全部一気に埋まる（実機と同じ）
 async function doBulk(){
   if(busy) return; const left=Math.max(0,S.slots-drawn.length); if(!left) return;
@@ -530,7 +535,9 @@ async function doBulk(){
   busy=false;
 }
 let cfmAction=null;
-function confirmBox(title,titleColor,msg,okLabel,action){ $("cfmT").textContent=title; $("cfmT").style.color=titleColor; $("cfmM").innerHTML=msg; $("cfmYes").textContent=okLabel; cfmAction=action; openCfm(); }
+function noMoreBox(){ $("cfm").classList.add("one"); $("cfmT").textContent="メッセージ"; $("cfmT").style.color=""; $("cfmM").innerHTML="最大抽選数に到達したか、抽選待ち項目がありません"; $("cfmYes").textContent="確認"; cfmAction=null; openCfm(); }
+function exhausted(){ return drawn.length>=S.slots || (pool().length===0 && !queue.length && schedFor(drawn.length+1)==null); }
+function confirmBox(title,titleColor,msg,okLabel,action){ $("cfm").classList.remove("one"); $("cfmT").textContent=title; $("cfmT").style.color=titleColor; $("cfmM").innerHTML=msg; $("cfmYes").textContent=okLabel; cfmAction=action; openCfm(); }
 // 実機の録画を1コマずつ測った出方：箱は約0.3倍から勢いよく広がってスッと止まり（約0.25秒）、背景は約0.5秒かけて暗くなる。閉じるときは一瞬で消える
 let cfmRaf=0;
 function openCfm(){
@@ -547,7 +554,7 @@ function openCfm(){
   cfmRaf=requestAnimationFrame(f);
 }
 function closeCfm(){ cancelAnimationFrame(cfmRaf); const c=$("cfm"); c.hidden=true; c.style.background=""; c.querySelector(".box").style.transform=""; window.paintBand&&paintBand(); }
-$("btnBulk").onclick=()=>{ if(busy || drawn.length>=S.slots) return; if(S.askBulk===false){ doBulk(); return; } confirmBox("メッセージ","#000","すべての賞品を一括抽選しますか？","一括抽選",doBulk); };
+$("btnBulk").onclick=()=>{ if(busy) return; if(exhausted()){ noMoreBox(); return; } if(S.askBulk===false){ doBulk(); return; } confirmBox("メッセージ","#000","すべての賞品を一括抽選しますか？","一括抽選",doBulk); };
 
 /* reset with in-page confirm (tap twice) */
 $("btnReset").onclick=()=>{ if(busy) return; if(S.askReset===false){ drawn=[]; render(); sendState(); return; } confirmBox("注意","#ff383c","抽選結果をリセットしますか？<br>この操作は取り消すことができません","リセット",()=>{ drawn=[]; render(); sendState(); }); };
@@ -659,7 +666,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-0210";
+const APP_VER="20261118-1830";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
