@@ -471,7 +471,7 @@ function runDraw(n, fast, onReveal){
     // 幕のふわっと出る動き（0.15秒）はJSで動かし、一番下の色も同じコマで塗る
     const tIn=performance.now(); clip("circle(0% at 49.9% 45.2%)"); num.textContent=(n===null?"":n); num.style.transform="translateY(-50%) scale(.05)"; rv.style.opacity="1";
     fit(); initBalls(); angle=0; spin=0; bits=[]; fx.clearRect(0,0,SW,SH);
-    const bulk=(n===null); const SPIN=bulk?2.1:(fast?.8:2.3), EMERGE=fast?.15:.25, GROW=fast?.2:.40, HOLD=fast?.5:.77, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=fast?.15:.5;
+    const bulk=(n===null); const SPIN=bulk?2.1:(fast?.8:2.3), EMERGE=fast?.15:.25, GROW=fast?.2:.40, HOLD=fast?.5:.77, FADE=fast?.15:.25, PLAIN=fast?.1:.45, OUT=0; // 実機は結果の画面がフェードせず一瞬で消える
     let t0=performance.now(), last=t0; phase="spin";
     cancelAnimationFrame(raf);
     const loop=now=>{
@@ -498,8 +498,8 @@ function runDraw(n, fast, onReveal){
         if(t>=HOLD+FADE+PLAIN){ phase="closing"; t0=now; }
       } else if(phase==="closing"){
         if(!ov.classList.contains("closing")){ ov.dataset.out=(bulk?.25:OUT); ov.classList.add("closing"); }
-        ov.style.transition="none"; const o=Math.max(0,1-t/(bulk?.25:OUT)); ov.style.opacity=o.toFixed(3); window.paintBand&&paintBand();
-        if(o<=0){ finish(); return; }
+        ov.style.transition="none"; const dur=bulk?.25:OUT, o=dur>0?Math.max(0,1-t/dur):0; ov.style.opacity=o.toFixed(3); window.paintBand&&paintBand();
+        if(o<=0){ finish(); window.paintBand&&paintBand(); return; }
       }
       raf=requestAnimationFrame(loop);
     };
@@ -666,7 +666,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261119-1935";
+const APP_VER="20261119-2040";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
