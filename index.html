@@ -384,7 +384,7 @@ function render(){
     g.appendChild(c);
   }
 }
-function markHit(i){ const c=$("grid").querySelector(`.cell[data-n="${drawn[i]}"]`); if(c){ c.classList.add("hit"); c.scrollIntoView({block:"nearest",behavior:"smooth"}); } }
+function markHit(i){ const c=$("grid").querySelector(`.cell[data-n="${drawn[i]}"]`); if(c){ c.classList.add("hit"); } }
 
 /* ---------- canvas wheel ---------- */
 const cv=$("cv"), ctx=cv.getContext("2d"), cf=$("cf"), fx=cf.getContext("2d");
@@ -666,7 +666,7 @@ connect();
 })();
 
 /* 自動アップデート: ホーム画面アプリが古い版を覚えていても、新しい版があれば読み直す */
-const APP_VER="20261118-1830";
+const APP_VER="20261119-1930";
 function checkUpdate(){
   if(!/github\.io$/.test(location.hostname)) return;
   fetch(location.pathname+"?nocache="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
